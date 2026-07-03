@@ -9,7 +9,9 @@ export default function NotFound() {
       <p className="text-muted-foreground max-w-sm text-sm">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
-      <Button render={<Link href="/" />}>Back home</Button>
+      <Button render={<Link href="/" />} nativeButton={false}>
+        Back home
+      </Button>
     </div>
   );
 }

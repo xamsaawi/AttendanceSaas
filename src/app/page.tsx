@@ -11,8 +11,10 @@ export default function HomePage() {
         Track and manage team attendance with ease.
       </p>
       <div className="flex gap-3">
-        <Button render={<Link href="/login" />}>Sign in</Button>
-        <Button render={<Link href="/register" />} variant="outline">
+        <Button render={<Link href="/login" />} nativeButton={false}>
+          Sign in
+        </Button>
+        <Button render={<Link href="/register" />} nativeButton={false} variant="outline">
           Get started
         </Button>
       </div>
