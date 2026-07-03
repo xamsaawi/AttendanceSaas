@@ -1,0 +1,2 @@
+-- Local development seed data. Run automatically by `supabase db reset`.
+-- Add sample organizations/profiles here once auth users exist locally.
