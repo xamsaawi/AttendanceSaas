@@ -82,12 +82,6 @@ export function LoginForm({ error }: { error?: string }) {
             {isSubmitting ? "Signing in..." : "Sign in"}
           </Button>
         </form>
-        <p className="text-muted-foreground mt-4 text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-foreground font-medium hover:underline">
-            Sign up
-          </Link>
-        </p>
       </CardContent>
     </Card>
   );

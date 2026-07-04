@@ -2,19 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 
-import { env } from "@/config/env";
 import { removeMember } from "@/features/team/actions";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
 import {
   teacherInviteSchema,
   teacherProfileSchema,
   type TeacherInviteInput,
   type TeacherProfileInput,
 } from "@/lib/validations/teachers";
-import type { ActionResult } from "@/types/action-result";
+import type { ActionResult, PasswordActionResult } from "@/types/action-result";
 
 const TEACHERS_PATH = "/dashboard/teachers";
 
@@ -26,7 +26,9 @@ function splitSubjects(subjects: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export async function inviteTeacherWithProfile(input: TeacherInviteInput): Promise<ActionResult> {
+export async function inviteTeacherWithProfile(
+  input: TeacherInviteInput,
+): Promise<PasswordActionResult> {
   const parsed = teacherInviteSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -34,19 +36,24 @@ export async function inviteTeacherWithProfile(input: TeacherInviteInput): Promi
 
   const membership = await requireAdminMembership();
   if (!membership) {
-    return { success: false, error: "You don't have permission to invite teachers" };
+    return { success: false, error: "You don't have permission to add teachers" };
   }
 
   const admin = createAdminClient();
+  const tempPassword = generateTempPassword();
 
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
-    data: { full_name: parsed.data.fullName },
-    redirectTo: `${env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+  const { data, error } = await createConfirmedUser(admin, {
+    email: parsed.data.email,
+    fullName: parsed.data.fullName,
+    password: tempPassword,
   });
 
   if (error || !data.user) {
-    logger.warn("Failed to invite teacher", { email: parsed.data.email, message: error?.message });
-    return { success: false, error: error?.message ?? "Failed to send invite" };
+    logger.warn("Failed to create teacher account", {
+      email: parsed.data.email,
+      message: error?.message,
+    });
+    return { success: false, error: error?.message ?? "Failed to create account" };
   }
 
   const { error: memberError } = await admin.from("organization_members").insert({
@@ -56,8 +63,8 @@ export async function inviteTeacherWithProfile(input: TeacherInviteInput): Promi
   });
 
   if (memberError) {
-    logger.warn("Failed to add invited teacher to organization", { message: memberError.message });
-    return { success: false, error: "Invite sent, but adding them to your school failed" };
+    logger.warn("Failed to add teacher to organization", { message: memberError.message });
+    return { success: false, error: "Account created, but adding them to your school failed" };
   }
 
   const { error: profileError } = await admin.from("teacher_profiles").insert({
@@ -72,11 +79,11 @@ export async function inviteTeacherWithProfile(input: TeacherInviteInput): Promi
 
   if (profileError) {
     logger.warn("Failed to create teacher profile", { message: profileError.message });
-    return { success: false, error: "Invite sent, but saving teacher details failed" };
+    return { success: false, error: "Account created, but saving teacher details failed" };
   }
 
   revalidatePath(TEACHERS_PATH);
-  return { success: true };
+  return { success: true, tempPassword };
 }
 
 export async function updateTeacherProfile(

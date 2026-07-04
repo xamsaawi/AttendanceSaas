@@ -21,6 +21,7 @@ type ImportSummary = {
   succeeded: number;
   failed: number;
   errors: { row: number; message: string }[];
+  accounts?: { email: string; tempPassword: string }[];
 };
 
 export function ImportExportBar({ entity, label }: { entity: "students" | "teachers" | "guardians"; label: string }) {
@@ -96,6 +97,20 @@ export function ImportExportBar({ entity, label }: { entity: "students" | "teach
               <p>
                 {summary.succeeded} succeeded, {summary.failed} failed, out of {summary.total} rows.
               </p>
+              {summary.accounts && summary.accounts.length > 0 && (
+                <div className="space-y-1">
+                  <p className="font-medium">
+                    Temporary passwords (won&apos;t be shown again — share with each teacher):
+                  </p>
+                  <ul className="space-y-1 font-mono">
+                    {summary.accounts.map((account) => (
+                      <li key={account.email}>
+                        {account.email}: {account.tempPassword}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {summary.errors.length > 0 && (
                 <ul className="text-destructive space-y-1">
                   {summary.errors.slice(0, 50).map((err, i) => (

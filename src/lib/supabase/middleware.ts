@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { env } from "@/config/env";
 
-const PUBLIC_ROUTES = ["/login", "/register", "/forgot-password", "/auth/callback"];
+const PUBLIC_ROUTES = ["/login", "/forgot-password", "/auth/callback"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });

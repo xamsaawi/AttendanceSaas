@@ -24,6 +24,7 @@ import { inviteTeacherSchema, type InviteTeacherInput } from "@/lib/validations/
 export function InviteTeacherDialog() {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -41,43 +42,81 @@ export function InviteTeacherDialog() {
       return;
     }
 
-    toast.success("Invite sent");
     reset();
-    setOpen(false);
+    setTempPassword(result.tempPassword);
+  }
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) setTempPassword(null);
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger render={<Button />}>
         <UserPlusIcon />
-        Invite teacher
+        Add teacher
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Invite a teacher</DialogTitle>
-          <DialogDescription>
-            We&apos;ll email them a link to set up their account.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full name</Label>
-            <Input id="fullName" autoComplete="name" {...register("fullName")} />
-            {errors.fullName && (
-              <p className="text-destructive text-sm">{errors.fullName.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" autoComplete="email" {...register("email")} />
-            {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Sending invite..." : "Send invite"}
-            </Button>
-          </DialogFooter>
-        </form>
+        {tempPassword ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Teacher account created</DialogTitle>
+              <DialogDescription>
+                Share this temporary password with them so they can sign in. It won&apos;t be
+                shown again.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-2">
+              <Input readOnly value={tempPassword} className="font-mono" />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(tempPassword);
+                  toast.success("Copied to clipboard");
+                }}
+              >
+                Copy
+              </Button>
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => handleOpenChange(false)}>
+                Done
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Add a teacher</DialogTitle>
+              <DialogDescription>
+                We&apos;ll create their account with a temporary password.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full name</Label>
+                <Input id="fullName" autoComplete="name" {...register("fullName")} />
+                {errors.fullName && (
+                  <p className="text-destructive text-sm">{errors.fullName.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" autoComplete="email" {...register("email")} />
+                {errors.email && (
+                  <p className="text-destructive text-sm">{errors.email.message}</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Creating account..." : "Create account"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

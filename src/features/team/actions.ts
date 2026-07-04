@@ -2,20 +2,20 @@
 
 import { revalidatePath } from "next/cache";
 
-import { env } from "@/config/env";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
 import {
   inviteTeacherSchema,
   updateMemberRoleSchema,
   type InviteTeacherInput,
   type UpdateMemberRoleInput,
 } from "@/lib/validations/team";
-import type { ActionResult } from "@/types/action-result";
+import type { ActionResult, PasswordActionResult } from "@/types/action-result";
 
-export async function inviteTeacher(input: InviteTeacherInput): Promise<ActionResult> {
+export async function inviteTeacher(input: InviteTeacherInput): Promise<PasswordActionResult> {
   const parsed = inviteTeacherSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -23,22 +23,24 @@ export async function inviteTeacher(input: InviteTeacherInput): Promise<ActionRe
 
   const membership = await requireAdminMembership();
   if (!membership) {
-    return { success: false, error: "You don't have permission to invite teachers" };
+    return { success: false, error: "You don't have permission to add teachers" };
   }
 
   const admin = createAdminClient();
+  const tempPassword = generateTempPassword();
 
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
-    data: { full_name: parsed.data.fullName },
-    redirectTo: `${env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+  const { data, error } = await createConfirmedUser(admin, {
+    email: parsed.data.email,
+    fullName: parsed.data.fullName,
+    password: tempPassword,
   });
 
   if (error || !data.user) {
-    logger.warn("Failed to invite teacher", {
+    logger.warn("Failed to create teacher account", {
       email: parsed.data.email,
       message: error?.message,
     });
-    return { success: false, error: error?.message ?? "Failed to send invite" };
+    return { success: false, error: error?.message ?? "Failed to create account" };
   }
 
   const { error: memberError } = await admin.from("organization_members").insert({
@@ -48,14 +50,14 @@ export async function inviteTeacher(input: InviteTeacherInput): Promise<ActionRe
   });
 
   if (memberError) {
-    logger.warn("Failed to add invited teacher to organization", {
+    logger.warn("Failed to add teacher to organization", {
       message: memberError.message,
     });
-    return { success: false, error: "Invite sent, but adding them to your school failed" };
+    return { success: false, error: "Account created, but adding them to your school failed" };
   }
 
   revalidatePath("/dashboard/team");
-  return { success: true };
+  return { success: true, tempPassword };
 }
 
 export async function updateMemberRole(input: UpdateMemberRoleInput): Promise<ActionResult> {

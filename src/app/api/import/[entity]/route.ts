@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 
-import { env } from "@/config/env";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import {
   guardianImportRowSchema,
@@ -20,6 +19,7 @@ import { parseWorkbook } from "@/lib/import-export/parse";
 import { validateRows } from "@/lib/import-export/validate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
 
 const ENTITIES = ["students", "teachers", "guardians"] as const;
 type Entity = (typeof ENTITIES)[number];
@@ -27,7 +27,14 @@ type Entity = (typeof ENTITIES)[number];
 const UNIQUE_VIOLATION = "23505";
 
 type ImportError = { row: number; message: string };
-type ImportSummary = { total: number; succeeded: number; failed: number; errors: ImportError[] };
+type CreatedAccount = { email: string; tempPassword: string };
+type ImportSummary = {
+  total: number;
+  succeeded: number;
+  failed: number;
+  errors: ImportError[];
+  accounts?: CreatedAccount[];
+};
 
 export async function POST(req: Request, { params }: { params: Promise<{ entity: string }> }) {
   const { entity } = await params;
@@ -150,6 +157,7 @@ async function importTeachers(buffer: ArrayBuffer, organizationId: string): Prom
 
   const admin = createAdminClient();
   const errors: ImportError[] = [];
+  const accounts: CreatedAccount[] = [];
   let succeeded = 0;
 
   for (const result of results) {
@@ -158,13 +166,15 @@ async function importTeachers(buffer: ArrayBuffer, organizationId: string): Prom
       continue;
     }
 
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(result.data.email, {
-      data: { full_name: result.data.fullName },
-      redirectTo: `${env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+    const tempPassword = generateTempPassword();
+    const { data, error } = await createConfirmedUser(admin, {
+      email: result.data.email,
+      fullName: result.data.fullName,
+      password: tempPassword,
     });
 
     if (error || !data.user) {
-      errors.push({ row: result.row, message: error?.message ?? "Failed to send invite" });
+      errors.push({ row: result.row, message: error?.message ?? "Failed to create account" });
       continue;
     }
 
@@ -174,7 +184,7 @@ async function importTeachers(buffer: ArrayBuffer, organizationId: string): Prom
       role: "teacher",
     });
     if (memberError) {
-      errors.push({ row: result.row, message: "Invite sent, but adding to school failed" });
+      errors.push({ row: result.row, message: "Account created, but adding to school failed" });
       continue;
     }
 
@@ -193,14 +203,15 @@ async function importTeachers(buffer: ArrayBuffer, organizationId: string): Prom
       hire_date: result.data.hireDate || null,
     });
     if (profileError) {
-      errors.push({ row: result.row, message: "Invite sent, but saving details failed" });
+      errors.push({ row: result.row, message: "Account created, but saving details failed" });
       continue;
     }
 
+    accounts.push({ email: result.data.email, tempPassword });
     succeeded++;
   }
 
-  return { total: results.length, succeeded, failed: errors.length, errors };
+  return { total: results.length, succeeded, failed: errors.length, errors, accounts };
 }
 
 async function importGuardians(buffer: ArrayBuffer, organizationId: string): Promise<ImportSummary> {

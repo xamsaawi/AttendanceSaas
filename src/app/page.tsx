@@ -14,9 +14,6 @@ export default function HomePage() {
         <Button render={<Link href="/login" />} nativeButton={false}>
           Sign in
         </Button>
-        <Button render={<Link href="/register" />} nativeButton={false} variant="outline">
-          Get started
-        </Button>
       </div>
     </div>
   );

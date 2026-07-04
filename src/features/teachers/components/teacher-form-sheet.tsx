@@ -38,7 +38,7 @@ export function TeacherFormSheet({ teacher }: { teacher?: TeacherRow }) {
       {!teacher && (
         <Button onClick={() => setOpen(true)} type="button">
           <PlusIcon />
-          Invite teacher
+          Add teacher
         </Button>
       )}
       {teacher && (
@@ -48,7 +48,7 @@ export function TeacherFormSheet({ teacher }: { teacher?: TeacherRow }) {
       )}
       <SheetContent className="overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>{teacher ? "Edit teacher" : "Invite a teacher"}</SheetTitle>
+          <SheetTitle>{teacher ? "Edit teacher" : "Add a teacher"}</SheetTitle>
         </SheetHeader>
         <div className="space-y-4 px-4">
           {teacher ? (
@@ -64,6 +64,7 @@ export function TeacherFormSheet({ teacher }: { teacher?: TeacherRow }) {
 
 function InviteTeacherForm({ onDone }: { onDone: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -80,9 +81,40 @@ function InviteTeacherForm({ onDone }: { onDone: () => void }) {
       toast.error(result.error);
       return;
     }
-    toast.success("Invite sent");
     reset();
-    onDone();
+    setTempPassword(result.tempPassword);
+  }
+
+  if (tempPassword) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <p className="font-medium">Teacher account created</p>
+          <p className="text-muted-foreground text-sm">
+            Share this temporary password with them so they can sign in. It won&apos;t be shown
+            again.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input readOnly value={tempPassword} className="font-mono" />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(tempPassword);
+              toast.success("Copied to clipboard");
+            }}
+          >
+            Copy
+          </Button>
+        </div>
+        <SheetFooter className="px-0">
+          <Button type="button" onClick={onDone}>
+            Done
+          </Button>
+        </SheetFooter>
+      </div>
+    );
   }
 
   return (
@@ -119,7 +151,7 @@ function InviteTeacherForm({ onDone }: { onDone: () => void }) {
       </div>
       <SheetFooter className="px-0">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Sending invite..." : "Send invite"}
+          {isSubmitting ? "Creating account..." : "Create account"}
         </Button>
       </SheetFooter>
     </form>
