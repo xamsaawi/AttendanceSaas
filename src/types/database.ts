@@ -1,10 +1,13 @@
 /**
- * Hand-written to match supabase/migrations/*.sql as of the school-domain
- * migration. Regenerate for real once migrations are applied:
+ * Hand-written to match supabase/migrations/*.sql as of the core-school-
+ * management migration (grades/sections/classes/students/teacher_profiles/
+ * guardians/student_guardians). Regenerate for real once migrations are
+ * applied:
  *   pnpm supabase gen types typescript --linked > src/types/database.ts
  */
 
 export type OrgRole = "owner" | "admin" | "teacher";
+export type StudentStatus = "active" | "inactive" | "graduated" | "withdrawn";
 
 export type Database = {
   public: {
@@ -175,6 +178,235 @@ export type Database = {
           },
         ];
       };
+      grades: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["grades"]["Insert"]>;
+        Relationships: [];
+      };
+      sections: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["sections"]["Insert"]>;
+        Relationships: [];
+      };
+      classes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          academic_year_id: string;
+          grade_id: string;
+          section_id: string;
+          homeroom_teacher_id: string | null;
+          capacity: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          academic_year_id: string;
+          grade_id: string;
+          section_id: string;
+          homeroom_teacher_id?: string | null;
+          capacity?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["classes"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "classes_academic_year_id_fkey";
+            columns: ["academic_year_id"];
+            isOneToOne: false;
+            referencedRelation: "academic_years";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "classes_grade_id_fkey";
+            columns: ["grade_id"];
+            isOneToOne: false;
+            referencedRelation: "grades";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "classes_section_id_fkey";
+            columns: ["section_id"];
+            isOneToOne: false;
+            referencedRelation: "sections";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "classes_homeroom_teacher_id_fkey";
+            columns: ["homeroom_teacher_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      students: {
+        Row: {
+          id: string;
+          organization_id: string;
+          admission_number: string;
+          first_name: string;
+          last_name: string;
+          full_name: string;
+          date_of_birth: string | null;
+          gender: string | null;
+          class_id: string | null;
+          status: StudentStatus;
+          enrollment_date: string;
+          photo_url: string | null;
+          address: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          admission_number: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth?: string | null;
+          gender?: string | null;
+          class_id?: string | null;
+          status?: StudentStatus;
+          enrollment_date?: string;
+          photo_url?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["students"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      teacher_profiles: {
+        Row: {
+          organization_id: string;
+          user_id: string;
+          staff_id: string | null;
+          phone: string | null;
+          subjects: string[];
+          qualification: string | null;
+          hire_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          user_id: string;
+          staff_id?: string | null;
+          phone?: string | null;
+          subjects?: string[];
+          qualification?: string | null;
+          hire_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["teacher_profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      guardians: {
+        Row: {
+          id: string;
+          organization_id: string;
+          full_name: string;
+          phone: string | null;
+          email: string | null;
+          address: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          full_name: string;
+          phone?: string | null;
+          email?: string | null;
+          address?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["guardians"]["Insert"]>;
+        Relationships: [];
+      };
+      student_guardians: {
+        Row: {
+          id: string;
+          organization_id: string;
+          student_id: string;
+          guardian_id: string;
+          relationship: string;
+          is_primary: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          student_id: string;
+          guardian_id: string;
+          relationship: string;
+          is_primary?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["student_guardians"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "student_guardians_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_guardians_guardian_id_fkey";
+            columns: ["guardian_id"];
+            isOneToOne: false;
+            referencedRelation: "guardians";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -189,6 +421,7 @@ export type Database = {
     };
     Enums: {
       org_role: OrgRole;
+      student_status: StudentStatus;
     };
   };
 };

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { GlobalSearch } from "@/components/shared/global-search";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { env } from "@/config/env";
 
@@ -10,7 +11,10 @@ export function Navbar() {
         <Link href="/" className="font-semibold tracking-tight">
           {env.NEXT_PUBLIC_APP_NAME}
         </Link>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <GlobalSearch />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
