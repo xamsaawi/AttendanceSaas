@@ -61,6 +61,13 @@ export function RegisterForm() {
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="space-y-2">
+            <Label htmlFor="schoolName">School name</Label>
+            <Input id="schoolName" autoComplete="organization" {...register("schoolName")} />
+            {errors.schoolName && (
+              <p className="text-destructive text-sm">{errors.schoolName.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="fullName">Full name</Label>
             <Input id="fullName" autoComplete="name" {...register("fullName")} />
             {errors.fullName && (

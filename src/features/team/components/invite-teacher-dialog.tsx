@@ -1,0 +1,84 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { UserPlusIcon } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { inviteTeacher } from "@/features/team/actions";
+import { inviteTeacherSchema, type InviteTeacherInput } from "@/lib/validations/team";
+
+export function InviteTeacherDialog() {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<InviteTeacherInput>({ resolver: zodResolver(inviteTeacherSchema) });
+
+  async function onSubmit(data: InviteTeacherInput) {
+    setIsSubmitting(true);
+    const result = await inviteTeacher(data);
+    setIsSubmitting(false);
+
+    if (!result.success) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Invite sent");
+    reset();
+    setOpen(false);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button />}>
+        <UserPlusIcon />
+        Invite teacher
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Invite a teacher</DialogTitle>
+          <DialogDescription>
+            We&apos;ll email them a link to set up their account.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full name</Label>
+            <Input id="fullName" autoComplete="name" {...register("fullName")} />
+            {errors.fullName && (
+              <p className="text-destructive text-sm">{errors.fullName.message}</p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" type="email" autoComplete="email" {...register("email")} />
+            {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Sending invite..." : "Send invite"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
