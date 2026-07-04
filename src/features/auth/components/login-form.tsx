@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -19,13 +19,23 @@ import { Label } from "@/components/ui/label";
 import { login } from "@/features/auth/actions";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
-export function LoginForm() {
+const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
+  "auth-callback-failed":
+    "That confirmation link is invalid or has expired. Please try again or request a new one.",
+};
+
+export function LoginForm({ error }: { error?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+
+  useEffect(() => {
+    if (!error) return;
+    toast.error(CALLBACK_ERROR_MESSAGES[error] ?? "Something went wrong. Please try again.");
+  }, [error]);
 
   async function onSubmit(data: LoginInput) {
     setIsSubmitting(true);
