@@ -2,6 +2,7 @@ import { SerwistProvider } from "@serwist/next/react";
 
 import { Toaster } from "@/components/ui/sonner";
 
+import { OfflineSyncProvider } from "./offline-sync-provider";
 import { QueryProvider } from "./query-provider";
 import { ThemeProvider } from "./theme-provider";
 
@@ -15,8 +16,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <QueryProvider>
-          {children}
-          <Toaster richColors closeButton />
+          <OfflineSyncProvider>
+            {children}
+            <Toaster richColors closeButton />
+          </OfflineSyncProvider>
         </QueryProvider>
       </ThemeProvider>
     </SerwistProvider>

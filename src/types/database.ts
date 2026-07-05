@@ -1,13 +1,16 @@
 /**
- * Hand-written to match supabase/migrations/*.sql as of the core-school-
- * management migration (grades/sections/classes/students/teacher_profiles/
- * guardians/student_guardians). Regenerate for real once migrations are
+ * Hand-written to match supabase/migrations/*.sql as of the attendance-system
+ * migration (attendance_sessions/attendance_records, school_settings
+ * working-day/cutoff columns, attendance_session_overview/
+ * student_attendance_stats views). Regenerate for real once migrations are
  * applied:
  *   pnpm supabase gen types typescript --linked > src/types/database.ts
  */
 
 export type OrgRole = "owner" | "admin" | "teacher";
 export type StudentStatus = "active" | "inactive" | "graduated" | "withdrawn";
+export type AttendanceStatus = "present" | "absent" | "late" | "excused" | "half_day";
+export type AttendanceSessionType = "before_break" | "after_break";
 
 export type Database = {
   public: {
@@ -74,6 +77,10 @@ export type Database = {
           phone: string | null;
           contact_email: string | null;
           logo_url: string | null;
+          working_days: number[];
+          before_break_cutoff: string;
+          after_break_cutoff: string;
+          attendance_lock_grace_hours: number;
           created_at: string;
           updated_at: string;
         };
@@ -84,6 +91,10 @@ export type Database = {
           phone?: string | null;
           contact_email?: string | null;
           logo_url?: string | null;
+          working_days?: number[];
+          before_break_cutoff?: string;
+          after_break_cutoff?: string;
+          attendance_lock_grace_hours?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -407,8 +418,132 @@ export type Database = {
           },
         ];
       };
+      attendance_sessions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          class_id: string;
+          session_date: string;
+          session_type: AttendanceSessionType;
+          submitted_by: string | null;
+          submitted_at: string | null;
+          locked_override: boolean | null;
+          locked_override_by: string | null;
+          locked_override_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          class_id: string;
+          session_date: string;
+          session_type: AttendanceSessionType;
+          submitted_by?: string | null;
+          submitted_at?: string | null;
+          locked_override?: boolean | null;
+          locked_override_by?: string | null;
+          locked_override_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["attendance_sessions"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_class_id_fkey";
+            columns: ["class_id"];
+            isOneToOne: false;
+            referencedRelation: "classes";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      attendance_records: {
+        Row: {
+          id: string;
+          organization_id: string;
+          session_id: string;
+          student_id: string;
+          status: AttendanceStatus;
+          notes: string | null;
+          marked_by: string | null;
+          marked_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          session_id: string;
+          student_id: string;
+          status?: AttendanceStatus;
+          notes?: string | null;
+          marked_by?: string | null;
+          marked_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["attendance_records"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "attendance_records_session_id_fkey";
+            columns: ["session_id"];
+            isOneToOne: false;
+            referencedRelation: "attendance_sessions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "attendance_records_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      attendance_session_overview: {
+        Row: {
+          session_id: string;
+          organization_id: string;
+          class_id: string;
+          grade_id: string;
+          section_id: string;
+          homeroom_teacher_id: string | null;
+          session_date: string;
+          session_type: AttendanceSessionType;
+          submitted_by: string | null;
+          submitted_at: string | null;
+          locked_override: boolean | null;
+          effective_lock_at: string;
+          is_locked: boolean;
+          total_students: number;
+          marked_count: number;
+          present_count: number;
+          absent_count: number;
+          late_count: number;
+          excused_count: number;
+          half_day_count: number;
+        };
+        Relationships: [];
+      };
+      student_attendance_stats: {
+        Row: {
+          student_id: string;
+          organization_id: string;
+          class_id: string | null;
+          total_marked: number;
+          present_count: number;
+          absent_count: number;
+          late_count: number;
+          excused_count: number;
+          half_day_count: number;
+          attendance_percentage: number | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       get_user_org_ids: {
         Args: Record<string, never>;
@@ -418,10 +553,37 @@ export type Database = {
         Args: { org_id: string };
         Returns: boolean;
       };
+      is_class_teacher: {
+        Args: { p_class_id: string };
+        Returns: boolean;
+      };
+      attendance_lock_at: {
+        Args: {
+          p_class_id: string;
+          p_session_date: string;
+          p_session_type: AttendanceSessionType;
+        };
+        Returns: string;
+      };
+      attendance_session_is_locked: {
+        Args: {
+          p_class_id: string;
+          p_session_date: string;
+          p_session_type: AttendanceSessionType;
+          p_locked_override: boolean | null;
+        };
+        Returns: boolean;
+      };
+      attendance_session_locked: {
+        Args: { p_session_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       org_role: OrgRole;
       student_status: StudentStatus;
+      attendance_status: AttendanceStatus;
+      attendance_session_type: AttendanceSessionType;
     };
   };
 };

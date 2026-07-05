@@ -39,6 +39,10 @@ export async function updateSchoolSettings(input: SchoolSettingsInput): Promise<
       address: parsed.data.address || null,
       phone: parsed.data.phone || null,
       contact_email: parsed.data.contactEmail || null,
+      working_days: parsed.data.workingDays,
+      before_break_cutoff: parsed.data.beforeBreakCutoff,
+      after_break_cutoff: parsed.data.afterBreakCutoff,
+      attendance_lock_grace_hours: parsed.data.attendanceLockGraceHours,
     })
     .eq("organization_id", membership.organizationId);
 

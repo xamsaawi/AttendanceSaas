@@ -89,6 +89,10 @@ export default async function SettingsPage() {
                     address: settings.address ?? "",
                     phone: settings.phone ?? "",
                     contactEmail: settings.contact_email ?? "",
+                    workingDays: settings.working_days,
+                    beforeBreakCutoff: settings.before_break_cutoff.slice(0, 5),
+                    afterBreakCutoff: settings.after_break_cutoff.slice(0, 5),
+                    attendanceLockGraceHours: settings.attendance_lock_grace_hours,
                   }}
                 />
               </CardContent>

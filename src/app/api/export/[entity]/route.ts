@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  attendanceExportColumns,
+  listAttendanceRecordsForExport,
+  type AttendanceExportRow,
+} from "@/features/attendance/export";
 import { listClassOptions } from "@/features/classes/queries";
 import { getCurrentMembership } from "@/features/organizations/queries";
 import { guardianImportColumns, type GuardianImportRow } from "@/features/parents/import";
@@ -9,11 +14,14 @@ import { studentImportColumns, type StudentImportRow } from "@/features/students
 import { teacherImportColumns, type TeacherImportRow } from "@/features/teachers/import";
 import { listTeachers } from "@/features/teachers/queries";
 import { buildWorkbook } from "@/lib/import-export/build-workbook";
+import type { AttendanceSessionType } from "@/types/database";
 
-const ENTITIES = ["students", "teachers", "guardians"] as const;
+const ENTITIES = ["students", "teachers", "guardians", "attendance"] as const;
 type Entity = (typeof ENTITIES)[number];
 
-export async function GET(_req: Request, { params }: { params: Promise<{ entity: string }> }) {
+const DEFAULT_EXPORT_RANGE_DAYS = 90;
+
+export async function GET(req: Request, { params }: { params: Promise<{ entity: string }> }) {
   const { entity } = await params;
   if (!ENTITIES.includes(entity as Entity)) {
     return NextResponse.json({ error: "Unknown entity" }, { status: 404 });
@@ -26,7 +34,24 @@ export async function GET(_req: Request, { params }: { params: Promise<{ entity:
 
   let buffer: Buffer;
 
-  if (entity === "students") {
+  if (entity === "attendance") {
+    const url = new URL(req.url);
+    const today = new Date().toISOString().slice(0, 10);
+    const defaultFrom = new Date(Date.now() - DEFAULT_EXPORT_RANGE_DAYS * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    const rows: AttendanceExportRow[] = await listAttendanceRecordsForExport(
+      membership.organizationId,
+      {
+        dateFrom: url.searchParams.get("dateFrom") ?? defaultFrom,
+        dateTo: url.searchParams.get("dateTo") ?? today,
+        classId: url.searchParams.get("classId") ?? undefined,
+        sessionType: (url.searchParams.get("sessionType") as AttendanceSessionType) ?? undefined,
+      },
+    );
+    buffer = await buildWorkbook(rows, attendanceExportColumns);
+  } else if (entity === "students") {
     const [students, classOptions] = await Promise.all([
       listAllStudentsForExport(membership.organizationId),
       listClassOptions(membership.organizationId),
