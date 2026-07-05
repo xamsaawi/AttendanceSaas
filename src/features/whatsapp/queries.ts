@@ -17,7 +17,9 @@ export async function getWhatsappSettings(organizationId: string): Promise<Whats
     .maybeSingle();
 
   return {
-    provider: data?.provider ?? null,
+    // The `provider` column is a plain text field with a check constraint
+    // (null or 'twilio'), so codegen can't narrow it to the literal type.
+    provider: (data?.provider as "twilio" | null) ?? null,
     accountSid: data?.account_sid ?? null,
     phoneNumberId: data?.phone_number_id ?? null,
     accessToken: data?.access_token ?? null,

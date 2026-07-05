@@ -40,12 +40,12 @@ export async function GET(req: Request) {
 
       const totals = (overview ?? []).reduce(
         (acc, row) => ({
-          marked: acc.marked + row.marked_count,
-          present: acc.present + row.present_count,
-          absent: acc.absent + row.absent_count,
-          late: acc.late + row.late_count,
-          excused: acc.excused + row.excused_count,
-          halfDay: acc.halfDay + row.half_day_count,
+          marked: acc.marked + (row.marked_count ?? 0),
+          present: acc.present + (row.present_count ?? 0),
+          absent: acc.absent + (row.absent_count ?? 0),
+          late: acc.late + (row.late_count ?? 0),
+          excused: acc.excused + (row.excused_count ?? 0),
+          halfDay: acc.halfDay + (row.half_day_count ?? 0),
         }),
         { marked: 0, present: 0, absent: 0, late: 0, excused: 0, halfDay: 0 },
       );

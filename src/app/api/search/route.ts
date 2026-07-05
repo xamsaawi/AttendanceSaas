@@ -61,7 +61,9 @@ export async function GET(req: Request) {
   const results: SearchResults = {
     students: (studentsRes.data ?? []).map((s) => ({
       id: s.id,
-      label: s.full_name,
+      // full_name is a generated column over two NOT NULL fields, so it's
+      // never actually null — Supabase's codegen just can't express that.
+      label: s.full_name!,
       sublabel: s.admission_number,
     })),
     teachers: (teacherProfiles ?? []).map((t) => ({

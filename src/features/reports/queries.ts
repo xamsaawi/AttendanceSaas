@@ -26,7 +26,9 @@ export async function listReportRuns(organizationId: string, limit = 20): Promis
     reportType: row.report_type,
     runDate: row.run_date,
     status: row.status,
-    summary: row.summary,
+    // jsonb defaults to '{}' and is only ever written as an object (see the
+    // cron route), so this is always an object despite the wider Json type.
+    summary: row.summary as Record<string, unknown>,
     createdAt: row.created_at,
   }));
 }
@@ -53,13 +55,16 @@ export async function getClassAttendanceComparison(
 
   const labelById = new Map(classOptions.map((c) => [c.id, c.label]));
 
+  // class_id and total_marked are guaranteed non-null by the underlying SQL
+  // (class_attendance_stats groups by classes.id and total_marked is a plain
+  // COUNT(...)) — views just don't carry that metadata for Supabase's codegen.
   return (stats ?? [])
-    .filter((row) => row.total_marked > 0)
+    .filter((row) => (row.total_marked ?? 0) > 0)
     .map((row) => ({
-      classId: row.class_id,
-      classLabel: labelById.get(row.class_id) ?? "Unknown class",
+      classId: row.class_id!,
+      classLabel: labelById.get(row.class_id!) ?? "Unknown class",
       attendancePercentage: row.attendance_percentage,
-      totalMarked: row.total_marked,
+      totalMarked: row.total_marked ?? 0,
     }))
     .sort((a, b) => a.classLabel.localeCompare(b.classLabel));
 }
@@ -88,20 +93,24 @@ export async function getAttendanceTrend(
     string,
     { marked: number; present: number; late: number; halfDay: number; excused: number }
   >();
+  // session_date is sourced directly from attendance_sessions (never null)
+  // and the count columns are plain COUNT(...) aggregates (never null) —
+  // views just don't carry that metadata for Supabase's codegen to see.
   for (const row of data ?? []) {
-    const bucket = byDate.get(row.session_date) ?? {
+    const sessionDate = row.session_date!;
+    const bucket = byDate.get(sessionDate) ?? {
       marked: 0,
       present: 0,
       late: 0,
       halfDay: 0,
       excused: 0,
     };
-    bucket.marked += row.marked_count;
-    bucket.present += row.present_count;
-    bucket.late += row.late_count;
-    bucket.halfDay += row.half_day_count;
-    bucket.excused += row.excused_count;
-    byDate.set(row.session_date, bucket);
+    bucket.marked += row.marked_count ?? 0;
+    bucket.present += row.present_count ?? 0;
+    bucket.late += row.late_count ?? 0;
+    bucket.halfDay += row.half_day_count ?? 0;
+    bucket.excused += row.excused_count ?? 0;
+    byDate.set(sessionDate, bucket);
   }
 
   return Array.from(byDate.entries())
@@ -137,12 +146,14 @@ export async function getLowAttendanceStudents(
   if (error) throw error;
   if (!stats?.length) return [];
 
+  // student_id is sourced directly from students.id (never null) — the view
+  // just doesn't carry that metadata for Supabase's codegen to see.
   const { data: students, error: studentsError } = await supabase
     .from("students")
     .select("id, full_name, admission_number")
     .in(
       "id",
-      stats.map((s) => s.student_id),
+      stats.map((s) => s.student_id!),
     );
   if (studentsError) throw studentsError;
 
@@ -150,9 +161,9 @@ export async function getLowAttendanceStudents(
 
   return stats
     .map((row) => ({
-      studentId: row.student_id,
-      studentName: studentById.get(row.student_id)?.full_name ?? "Unknown",
-      admissionNumber: studentById.get(row.student_id)?.admission_number ?? "",
+      studentId: row.student_id!,
+      studentName: studentById.get(row.student_id!)?.full_name ?? "Unknown",
+      admissionNumber: studentById.get(row.student_id!)?.admission_number ?? "",
       attendancePercentage: row.attendance_percentage,
     }))
     .sort((a, b) => (a.attendancePercentage ?? 0) - (b.attendancePercentage ?? 0));
@@ -218,8 +229,12 @@ export async function getClassAttendanceSummaryForRange(
     { marked: number; present: number; absent: number; late: number; excused: number; halfDay: number }
   >();
 
+  // class_id and the count columns are all guaranteed non-null by the
+  // underlying SQL — views just don't carry that metadata for Supabase's
+  // codegen to see.
   for (const row of data ?? []) {
-    const bucket = byClass.get(row.class_id) ?? {
+    const classId = row.class_id!;
+    const bucket = byClass.get(classId) ?? {
       marked: 0,
       present: 0,
       absent: 0,
@@ -227,13 +242,13 @@ export async function getClassAttendanceSummaryForRange(
       excused: 0,
       halfDay: 0,
     };
-    bucket.marked += row.marked_count;
-    bucket.present += row.present_count;
-    bucket.absent += row.absent_count;
-    bucket.late += row.late_count;
-    bucket.excused += row.excused_count;
-    bucket.halfDay += row.half_day_count;
-    byClass.set(row.class_id, bucket);
+    bucket.marked += row.marked_count ?? 0;
+    bucket.present += row.present_count ?? 0;
+    bucket.absent += row.absent_count ?? 0;
+    bucket.late += row.late_count ?? 0;
+    bucket.excused += row.excused_count ?? 0;
+    bucket.halfDay += row.half_day_count ?? 0;
+    byClass.set(classId, bucket);
   }
 
   return Array.from(byClass.entries())
@@ -282,12 +297,12 @@ export async function getAttendanceSummary(
 
   const totals = (data ?? []).reduce(
     (acc, row) => ({
-      marked: acc.marked + row.marked_count,
-      present: acc.present + row.present_count,
-      absent: acc.absent + row.absent_count,
-      late: acc.late + row.late_count,
-      excused: acc.excused + row.excused_count,
-      halfDay: acc.halfDay + row.half_day_count,
+      marked: acc.marked + (row.marked_count ?? 0),
+      present: acc.present + (row.present_count ?? 0),
+      absent: acc.absent + (row.absent_count ?? 0),
+      late: acc.late + (row.late_count ?? 0),
+      excused: acc.excused + (row.excused_count ?? 0),
+      halfDay: acc.halfDay + (row.half_day_count ?? 0),
     }),
     { marked: 0, present: 0, absent: 0, late: 0, excused: 0, halfDay: 0 },
   );

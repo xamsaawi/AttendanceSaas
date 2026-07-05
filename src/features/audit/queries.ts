@@ -33,7 +33,9 @@ export async function listAuditLogs(
     action: row.action,
     entityType: row.entity_type,
     entityId: row.entity_id,
-    metadata: row.metadata,
+    // jsonb defaults to '{}' and is only ever written as an object (see
+    // logAuditEvent), so this is always an object despite the wider Json type.
+    metadata: row.metadata as Record<string, unknown>,
     createdAt: row.created_at,
   }));
 }

@@ -1,5 +1,6 @@
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 
 // Fire-and-forget audit trail insert, called from the tail of admin-meaningful
 // server actions (student/teacher/parent/class CRUD, settings changes, role
@@ -24,7 +25,7 @@ export async function logAuditEvent(params: {
       action: params.action,
       entity_type: params.entityType,
       entity_id: params.entityId ?? null,
-      metadata: params.metadata ?? {},
+      metadata: (params.metadata ?? {}) as Json,
     });
 
     if (error) {

@@ -156,7 +156,9 @@ export async function getClassRosterForSession(
   return {
     students: studentsRes.data.map((s) => ({
       id: s.id,
-      fullName: s.full_name,
+      // full_name is a generated column over two NOT NULL fields, so it's
+      // never actually null — Supabase's codegen just can't express that.
+      fullName: s.full_name!,
       admissionNumber: s.admission_number,
       photoUrl: s.photo_url,
     })),
@@ -404,12 +406,14 @@ export async function getStudentAttendanceStats(
   if (!data) return null;
 
   return {
-    totalMarked: data.total_marked,
-    presentCount: data.present_count,
-    absentCount: data.absent_count,
-    lateCount: data.late_count,
-    excusedCount: data.excused_count,
-    halfDayCount: data.half_day_count,
+    // These are plain COUNT(...) aggregates, always non-null in practice —
+    // Postgres views just don't carry NOT NULL metadata for computed columns.
+    totalMarked: data.total_marked ?? 0,
+    presentCount: data.present_count ?? 0,
+    absentCount: data.absent_count ?? 0,
+    lateCount: data.late_count ?? 0,
+    excusedCount: data.excused_count ?? 0,
+    halfDayCount: data.half_day_count ?? 0,
     attendancePercentage: data.attendance_percentage,
   };
 }
@@ -437,11 +441,14 @@ export async function getClassAttendanceCalendarMarks(
 
   if (error) throw error;
 
+  // These columns are all guaranteed non-null by the underlying SQL (either
+  // sourced from a NOT NULL column or a COUNT(...)/function call) — Postgres
+  // views just don't carry that metadata for Supabase's codegen to see.
   return data.map((row) => ({
-    sessionDate: row.session_date,
-    sessionType: row.session_type,
-    markedCount: row.marked_count,
-    totalStudents: row.total_students,
-    isLocked: row.is_locked,
+    sessionDate: row.session_date!,
+    sessionType: row.session_type!,
+    markedCount: row.marked_count ?? 0,
+    totalStudents: row.total_students ?? 0,
+    isLocked: row.is_locked ?? false,
   }));
 }

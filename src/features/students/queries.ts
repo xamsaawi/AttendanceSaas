@@ -50,7 +50,9 @@ export async function listStudents(
     .range(from, to);
 
   if (error) throw error;
-  return { rows: data, total: count ?? 0 };
+  // full_name is a generated column over two NOT NULL fields, so it's never
+  // actually null — Supabase's codegen just can't express that.
+  return { rows: data.map((s) => ({ ...s, full_name: s.full_name! })), total: count ?? 0 };
 }
 
 export type StudentOption = { id: string; label: string };
