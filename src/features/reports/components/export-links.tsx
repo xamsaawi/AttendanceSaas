@@ -14,6 +14,7 @@ export function ExportLinks({ baseHref, label }: { baseHref: string; label: stri
           variant="outline"
           size="sm"
           render={<a href={`${baseHref}${join}format=${format}`} />}
+          nativeButton={false}
         >
           <DownloadIcon />
           {format.toUpperCase()}

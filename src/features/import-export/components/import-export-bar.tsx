@@ -65,7 +65,7 @@ export function ImportExportBar({ entity, label }: { entity: "students" | "teach
 
   return (
     <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" render={<a href={`/api/export/${entity}`} />}>
+      <Button variant="outline" size="sm" render={<a href={`/api/export/${entity}`} />} nativeButton={false}>
         <DownloadIcon />
         Export
       </Button>

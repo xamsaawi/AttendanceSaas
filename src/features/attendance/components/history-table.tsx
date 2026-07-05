@@ -27,7 +27,7 @@ export function HistoryTable({
     <div className="space-y-3">
       {exportHref && (
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" render={<a href={exportHref} />}>
+          <Button variant="outline" size="sm" render={<a href={exportHref} />} nativeButton={false}>
             <DownloadIcon />
             Export CSV
           </Button>
