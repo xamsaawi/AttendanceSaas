@@ -5,7 +5,17 @@ import { env } from "@/config/env";
 
 const PUBLIC_ROUTES = ["/login", "/forgot-password", "/auth/callback"];
 
+// Routes that authenticate themselves (a bearer secret, a webhook signature,
+// etc.) rather than via the user's cookie session — Vercel Cron has no
+// session to present, so /api/cron/* would otherwise always redirect to
+// /login before the route's own auth check ever runs.
+const SELF_AUTHENTICATING_ROUTES = ["/api/cron", "/api/health"];
+
 export async function updateSession(request: NextRequest) {
+  if (SELF_AUTHENTICATING_ROUTES.some((route) => request.nextUrl.pathname.startsWith(route))) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

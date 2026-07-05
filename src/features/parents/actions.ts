@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
@@ -22,19 +23,31 @@ export async function createGuardian(input: GuardianInput): Promise<ActionResult
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("guardians").insert({
-    organization_id: membership.organizationId,
-    full_name: parsed.data.fullName,
-    phone: parsed.data.phone || null,
-    email: parsed.data.email || null,
-    address: parsed.data.address || null,
-    notes: parsed.data.notes || null,
-  });
+  const { data: created, error } = await supabase
+    .from("guardians")
+    .insert({
+      organization_id: membership.organizationId,
+      full_name: parsed.data.fullName,
+      phone: parsed.data.phone || null,
+      email: parsed.data.email || null,
+      address: parsed.data.address || null,
+      notes: parsed.data.notes || null,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     logger.warn("Failed to create guardian", { message: error.message });
     return { success: false, error: "Failed to create guardian" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "guardian.created",
+    entityType: "guardian",
+    entityId: created.id,
+    metadata: { name: parsed.data.fullName },
+  });
 
   revalidatePath(PARENTS_PATH);
   return { success: true };
@@ -69,6 +82,14 @@ export async function updateGuardian(id: string, input: GuardianInput): Promise<
     return { success: false, error: "Failed to update guardian" };
   }
 
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "guardian.updated",
+    entityType: "guardian",
+    entityId: id,
+    metadata: { name: parsed.data.fullName },
+  });
+
   revalidatePath(PARENTS_PATH);
   return { success: true };
 }
@@ -80,6 +101,13 @@ export async function deleteGuardian(id: string): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("guardians")
+    .select("full_name")
+    .eq("id", id)
+    .eq("organization_id", membership.organizationId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("guardians")
     .delete()
@@ -90,6 +118,14 @@ export async function deleteGuardian(id: string): Promise<ActionResult> {
     logger.warn("Failed to delete guardian", { message: error.message });
     return { success: false, error: "Failed to delete guardian" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "guardian.deleted",
+    entityType: "guardian",
+    entityId: id,
+    metadata: { name: existing?.full_name },
+  });
 
   revalidatePath(PARENTS_PATH);
   return { success: true };

@@ -1,8 +1,7 @@
 /**
- * Hand-written to match supabase/migrations/*.sql as of the attendance-system
- * migration (attendance_sessions/attendance_records, school_settings
- * working-day/cutoff columns, attendance_session_overview/
- * student_attendance_stats views). Regenerate for real once migrations are
+ * Hand-written to match supabase/migrations/*.sql as of the reports &
+ * communication migration (audit_logs, notifications, whatsapp_settings,
+ * whatsapp_messages, report_runs). Regenerate for real once migrations are
  * applied:
  *   pnpm supabase gen types typescript --linked > src/types/database.ts
  */
@@ -11,6 +10,8 @@ export type OrgRole = "owner" | "admin" | "teacher";
 export type StudentStatus = "active" | "inactive" | "graduated" | "withdrawn";
 export type AttendanceStatus = "present" | "absent" | "late" | "excused" | "half_day";
 export type AttendanceSessionType = "before_break" | "after_break";
+export type WhatsappMessageStatus = "pending" | "sent" | "failed" | "disabled";
+export type ReportRunStatus = "success" | "failed";
 
 export type Database = {
   public: {
@@ -501,6 +502,132 @@ export type Database = {
           },
         ];
       };
+      audit_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          actor_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          actor_id?: string | null;
+          action: string;
+          entity_type: string;
+          entity_id?: string | null;
+          metadata?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["audit_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          organization_id: string;
+          recipient_id: string;
+          type: string;
+          title: string;
+          body: string | null;
+          link: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          recipient_id: string;
+          type: string;
+          title: string;
+          body?: string | null;
+          link?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      whatsapp_settings: {
+        Row: {
+          organization_id: string;
+          provider: "twilio" | null;
+          account_sid: string | null;
+          phone_number_id: string | null;
+          access_token: string | null;
+          is_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          provider?: "twilio" | null;
+          account_sid?: string | null;
+          phone_number_id?: string | null;
+          access_token?: string | null;
+          is_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["whatsapp_settings"]["Insert"]>;
+        Relationships: [];
+      };
+      whatsapp_messages: {
+        Row: {
+          id: string;
+          organization_id: string;
+          recipient_phone: string;
+          recipient_name: string | null;
+          template_key: string | null;
+          body: string;
+          status: WhatsappMessageStatus;
+          provider_message_id: string | null;
+          error: string | null;
+          created_at: string;
+          sent_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          recipient_phone: string;
+          recipient_name?: string | null;
+          template_key?: string | null;
+          body: string;
+          status?: WhatsappMessageStatus;
+          provider_message_id?: string | null;
+          error?: string | null;
+          created_at?: string;
+          sent_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["whatsapp_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      report_runs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          report_type: string;
+          run_date: string;
+          status: ReportRunStatus;
+          summary: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          report_type: string;
+          run_date: string;
+          status: ReportRunStatus;
+          summary?: Record<string, unknown>;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["report_runs"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: {
       attendance_session_overview: {
@@ -533,6 +660,20 @@ export type Database = {
           student_id: string;
           organization_id: string;
           class_id: string | null;
+          total_marked: number;
+          present_count: number;
+          absent_count: number;
+          late_count: number;
+          excused_count: number;
+          half_day_count: number;
+          attendance_percentage: number | null;
+        };
+        Relationships: [];
+      };
+      class_attendance_stats: {
+        Row: {
+          class_id: string;
+          organization_id: string;
           total_marked: number;
           present_count: number;
           absent_count: number;
@@ -584,6 +725,8 @@ export type Database = {
       student_status: StudentStatus;
       attendance_status: AttendanceStatus;
       attendance_session_type: AttendanceSessionType;
+      whatsapp_message_status: WhatsappMessageStatus;
+      report_run_status: ReportRunStatus;
     };
   };
 };

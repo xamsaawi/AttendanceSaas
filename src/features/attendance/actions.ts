@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireClassAttendanceAccess } from "@/features/attendance/queries";
+import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
@@ -144,6 +145,18 @@ async function setLockOverride(
     logger.warn("Failed to update attendance session lock", { message: error.message });
     return { success: false, error: "Failed to update attendance session lock" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action:
+      lockedOverride === null
+        ? "attendance_session.lock_reset"
+        : lockedOverride
+          ? "attendance_session.locked"
+          : "attendance_session.unlocked",
+    entityType: "attendance_session",
+    entityId: parsed.data.sessionId,
+  });
 
   revalidatePath(ATTENDANCE_PATH);
   return { success: true };

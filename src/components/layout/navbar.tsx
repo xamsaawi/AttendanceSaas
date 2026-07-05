@@ -3,6 +3,7 @@ import Link from "next/link";
 import { GlobalSearch } from "@/components/shared/global-search";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { env } from "@/config/env";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 
 export function Navbar() {
   return (
@@ -13,6 +14,7 @@ export function Navbar() {
         </Link>
         <div className="flex items-center gap-2">
           <GlobalSearch />
+          <NotificationBell />
           <ThemeToggle />
         </div>
       </div>

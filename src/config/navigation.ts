@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BarChart3,
   CalendarCheck,
   Contact,
   GraduationCap,
@@ -23,6 +24,7 @@ export const dashboardNavItems: NavItem[] = [
   { title: "Teachers", href: "/dashboard/teachers", icon: UserCheck },
   { title: "Parents", href: "/dashboard/parents", icon: Contact },
   { title: "Classes", href: "/dashboard/classes", icon: School },
+  { title: "Reports", href: "/dashboard/reports", icon: BarChart3 },
   { title: "Team", href: "/dashboard/team", icon: Users },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ];

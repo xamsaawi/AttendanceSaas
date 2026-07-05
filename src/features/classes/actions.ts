@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
@@ -204,14 +205,18 @@ export async function createClass(input: ClassInput): Promise<ActionResult> {
   if (teacherError) return { success: false, error: teacherError };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("classes").insert({
-    organization_id: membership.organizationId,
-    academic_year_id: parsed.data.academicYearId,
-    grade_id: parsed.data.gradeId,
-    section_id: parsed.data.sectionId,
-    homeroom_teacher_id: parsed.data.homeroomTeacherId ?? null,
-    capacity: parsed.data.capacity ?? null,
-  });
+  const { data: created, error } = await supabase
+    .from("classes")
+    .insert({
+      organization_id: membership.organizationId,
+      academic_year_id: parsed.data.academicYearId,
+      grade_id: parsed.data.gradeId,
+      section_id: parsed.data.sectionId,
+      homeroom_teacher_id: parsed.data.homeroomTeacherId ?? null,
+      capacity: parsed.data.capacity ?? null,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     logger.warn("Failed to create class", { message: error.message });
@@ -220,6 +225,13 @@ export async function createClass(input: ClassInput): Promise<ActionResult> {
     }
     return { success: false, error: "Failed to create class" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "class.created",
+    entityType: "class",
+    entityId: created.id,
+  });
 
   revalidatePath(CLASSES_PATH);
   return { success: true };
@@ -263,6 +275,13 @@ export async function updateClass(id: string, input: ClassInput): Promise<Action
     return { success: false, error: "Failed to update class" };
   }
 
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "class.updated",
+    entityType: "class",
+    entityId: id,
+  });
+
   revalidatePath(CLASSES_PATH);
   return { success: true };
 }
@@ -284,6 +303,13 @@ export async function deleteClass(id: string): Promise<ActionResult> {
     logger.warn("Failed to delete class", { message: error.message });
     return { success: false, error: "Failed to delete class" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "class.deleted",
+    entityType: "class",
+    entityId: id,
+  });
 
   revalidatePath(CLASSES_PATH);
   return { success: true };

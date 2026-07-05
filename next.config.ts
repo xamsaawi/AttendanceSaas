@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // pdfmake's server-side Printer reads its standard-font .afm files off disk
+  // via __dirname-relative paths at runtime; if webpack bundles it into
+  // .next/server, those files never get copied and the lookup 404s. Keeping
+  // it external means Node requires it straight from node_modules instead.
+  serverExternalPackages: ["pdfmake"],
 };
 
 const withSerwist = withSerwistInit({

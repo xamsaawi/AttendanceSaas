@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
@@ -38,10 +39,14 @@ export async function createStudent(input: StudentInput): Promise<ActionResult> 
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("students").insert({
-    organization_id: membership.organizationId,
-    ...toRow(parsed.data),
-  });
+  const { data: created, error } = await supabase
+    .from("students")
+    .insert({
+      organization_id: membership.organizationId,
+      ...toRow(parsed.data),
+    })
+    .select("id")
+    .single();
 
   if (error) {
     logger.warn("Failed to create student", { message: error.message });
@@ -50,6 +55,14 @@ export async function createStudent(input: StudentInput): Promise<ActionResult> 
     }
     return { success: false, error: "Failed to create student" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "student.created",
+    entityType: "student",
+    entityId: created.id,
+    metadata: { admissionNumber: parsed.data.admissionNumber, name: `${parsed.data.firstName} ${parsed.data.lastName}` },
+  });
 
   revalidatePath(STUDENTS_PATH);
   return { success: true };
@@ -81,6 +94,14 @@ export async function updateStudent(id: string, input: StudentInput): Promise<Ac
     return { success: false, error: "Failed to update student" };
   }
 
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "student.updated",
+    entityType: "student",
+    entityId: id,
+    metadata: { admissionNumber: parsed.data.admissionNumber, name: `${parsed.data.firstName} ${parsed.data.lastName}` },
+  });
+
   revalidatePath(STUDENTS_PATH);
   return { success: true };
 }
@@ -92,6 +113,13 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("students")
+    .select("full_name, admission_number")
+    .eq("id", id)
+    .eq("organization_id", membership.organizationId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("students")
     .delete()
@@ -102,6 +130,14 @@ export async function deleteStudent(id: string): Promise<ActionResult> {
     logger.warn("Failed to delete student", { message: error.message });
     return { success: false, error: "Failed to delete student" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "student.deleted",
+    entityType: "student",
+    entityId: id,
+    metadata: { admissionNumber: existing?.admission_number, name: existing?.full_name },
+  });
 
   revalidatePath(STUDENTS_PATH);
   return { success: true };

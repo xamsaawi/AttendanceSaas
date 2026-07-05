@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAuditEvent } from "@/features/audit/log";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
 import { schoolSettingsSchema, type SchoolSettingsInput } from "@/lib/validations/organization";
@@ -50,6 +51,13 @@ export async function updateSchoolSettings(input: SchoolSettingsInput): Promise<
     logger.warn("Failed to update school settings", { message: settingsError.message });
     return { success: false, error: "You don't have permission to update school settings" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "settings.updated",
+    entityType: "school_settings",
+    entityId: membership.organizationId,
+  });
 
   revalidatePath("/dashboard/settings");
   return { success: true };

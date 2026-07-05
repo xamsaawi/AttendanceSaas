@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -56,6 +57,14 @@ export async function inviteTeacher(input: InviteTeacherInput): Promise<Password
     return { success: false, error: "Account created, but adding them to your school failed" };
   }
 
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "member.invited",
+    entityType: "organization_member",
+    entityId: data.user.id,
+    metadata: { email: parsed.data.email, name: parsed.data.fullName, role: "teacher" },
+  });
+
   revalidatePath("/dashboard/team");
   return { success: true, tempPassword };
 }
@@ -94,6 +103,14 @@ export async function updateMemberRole(input: UpdateMemberRoleInput): Promise<Ac
     return { success: false, error: "You don't have permission to change roles" };
   }
 
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "member.role_changed",
+    entityType: "organization_member",
+    entityId: parsed.data.userId,
+    metadata: { newRole: parsed.data.role },
+  });
+
   revalidatePath("/dashboard/team");
   return { success: true };
 }
@@ -120,6 +137,13 @@ export async function removeMember(userId: string): Promise<ActionResult> {
     logger.warn("Failed to remove member", { message: error.message });
     return { success: false, error: "You don't have permission to remove members" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "member.removed",
+    entityType: "organization_member",
+    entityId: userId,
+  });
 
   revalidatePath("/dashboard/team");
   return { success: true };

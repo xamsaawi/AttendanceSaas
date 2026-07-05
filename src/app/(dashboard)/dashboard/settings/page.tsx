@@ -13,6 +13,8 @@ import { TermsSection } from "@/features/academic/components/terms-section";
 import { getCurrentMembership, getSchoolSettings } from "@/features/organizations/queries";
 import { LogoUploadForm } from "@/features/organizations/components/logo-upload-form";
 import { SchoolSettingsForm } from "@/features/organizations/components/school-settings-form";
+import { getWhatsappSettings, listWhatsappMessages } from "@/features/whatsapp/queries";
+import { WhatsappSettingsForm } from "@/features/whatsapp/components/whatsapp-settings-form";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -30,11 +32,13 @@ export default async function SettingsPage() {
   }
 
   const isAdmin = membership.role === "owner" || membership.role === "admin";
-  const [settings, academicYears, terms, holidays] = await Promise.all([
+  const [settings, academicYears, terms, holidays, whatsappSettings, whatsappMessages] = await Promise.all([
     getSchoolSettings(membership.organizationId),
     listAcademicYears(membership.organizationId),
     listTerms(membership.organizationId),
     listHolidays(membership.organizationId),
+    isAdmin ? getWhatsappSettings(membership.organizationId) : Promise.resolve(null),
+    isAdmin ? listWhatsappMessages(membership.organizationId, 10) : Promise.resolve([]),
   ]);
 
   return (
@@ -67,6 +71,7 @@ export default async function SettingsPage() {
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="academic">Academic calendar</TabsTrigger>
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
           </TabsList>
           <TabsContent value="general" className="space-y-6 pt-4">
             <Card>
@@ -102,6 +107,27 @@ export default async function SettingsPage() {
             <AcademicYearsSection years={academicYears} />
             <TermsSection terms={terms} academicYears={academicYears} />
             <HolidaysSection holidays={holidays} academicYears={academicYears} />
+          </TabsContent>
+          <TabsContent value="integrations" className="space-y-6 pt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>WhatsApp messaging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {whatsappSettings && (
+                  <WhatsappSettingsForm
+                    defaultValues={{
+                      provider: whatsappSettings.provider ?? "none",
+                      accountSid: whatsappSettings.accountSid ?? "",
+                      phoneNumberId: whatsappSettings.phoneNumberId ?? "",
+                      accessToken: whatsappSettings.accessToken ?? "",
+                      isEnabled: whatsappSettings.isEnabled,
+                    }}
+                    recentMessages={whatsappMessages}
+                  />
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       )}

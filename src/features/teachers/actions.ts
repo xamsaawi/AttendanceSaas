@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logAuditEvent } from "@/features/audit/log";
 import { removeMember } from "@/features/team/actions";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
@@ -82,6 +83,14 @@ export async function inviteTeacherWithProfile(
     return { success: false, error: "Account created, but saving teacher details failed" };
   }
 
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "teacher.invited",
+    entityType: "teacher",
+    entityId: data.user.id,
+    metadata: { email: parsed.data.email, name: parsed.data.fullName },
+  });
+
   revalidatePath(TEACHERS_PATH);
   return { success: true, tempPassword };
 }
@@ -118,6 +127,13 @@ export async function updateTeacherProfile(
     logger.warn("Failed to update teacher profile", { message: error.message });
     return { success: false, error: "Failed to update teacher details" };
   }
+
+  await logAuditEvent({
+    organizationId: membership.organizationId,
+    action: "teacher.updated",
+    entityType: "teacher",
+    entityId: userId,
+  });
 
   revalidatePath(TEACHERS_PATH);
   return { success: true };
