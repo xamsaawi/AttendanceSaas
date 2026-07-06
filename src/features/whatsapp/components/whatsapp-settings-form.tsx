@@ -80,11 +80,13 @@ export function WhatsappSettingsForm({
       toast.error(result.error);
       return;
     }
-    toast.success(
-      isEnabled
-        ? "Test message sent — check the message log below"
-        : "Sending is disabled, so nothing was sent — logged as 'disabled' instead",
-    );
+    if (result.outcome === "sent") {
+      toast.success("Test message sent — check the message log below");
+    } else if (result.outcome === "disabled") {
+      toast.warning("Sending is disabled, so nothing was sent — logged as 'disabled' instead");
+    } else {
+      toast.error("Test message failed to send — see the error in the message log below");
+    }
   }
 
   return (

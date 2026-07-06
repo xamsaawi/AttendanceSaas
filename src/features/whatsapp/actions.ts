@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
-import { sendWhatsAppMessage } from "@/features/whatsapp/provider";
+import { sendWhatsAppMessage, type WhatsAppSendOutcome } from "@/features/whatsapp/provider";
 import { createClient } from "@/lib/supabase/server";
 import { whatsappSettingsSchema, type WhatsappSettingsInput } from "@/lib/validations/whatsapp";
 import type { ActionResult } from "@/types/action-result";
@@ -51,7 +51,11 @@ export async function updateWhatsappSettings(input: WhatsappSettingsInput): Prom
   return { success: true };
 }
 
-export async function sendTestWhatsappMessage(phone: string): Promise<ActionResult> {
+export type SendTestWhatsappResult =
+  | { success: true; outcome: WhatsAppSendOutcome }
+  | { success: false; error: string };
+
+export async function sendTestWhatsappMessage(phone: string): Promise<SendTestWhatsappResult> {
   const membership = await requireAdminMembership();
   if (!membership) {
     return { success: false, error: "You don't have permission to send messages" };
@@ -61,7 +65,7 @@ export async function sendTestWhatsappMessage(phone: string): Promise<ActionResu
   }
 
   const supabase = await createClient();
-  await sendWhatsAppMessage(supabase, {
+  const outcome = await sendWhatsAppMessage(supabase, {
     organizationId: membership.organizationId,
     recipientPhone: phone.trim(),
     body: `Test message from ${membership.organizationName} — WhatsApp integration is working.`,
@@ -69,5 +73,5 @@ export async function sendTestWhatsappMessage(phone: string): Promise<ActionResu
   });
 
   revalidatePath(SETTINGS_PATH);
-  return { success: true };
+  return { success: true, outcome };
 }
