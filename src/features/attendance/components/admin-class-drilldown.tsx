@@ -14,6 +14,7 @@ import {
 } from "@/features/attendance/actions";
 import { LockBadge } from "@/features/attendance/components/lock-badge";
 import { RosterTable, type RosterEditValue } from "@/features/attendance/components/roster-table";
+import { SendParentReportDialog } from "@/features/attendance/components/send-parent-report-dialog";
 import type { RosterStudent, SessionLockInfo } from "@/features/attendance/queries";
 import type { AttendanceSessionType, AttendanceStatus } from "@/types/database";
 
@@ -23,6 +24,7 @@ export function AdminClassDrilldown({
   sessionType,
   students,
   initialValues,
+  markedCount,
   lock,
 }: {
   classId: string;
@@ -30,6 +32,7 @@ export function AdminClassDrilldown({
   sessionType: AttendanceSessionType;
   students: RosterStudent[];
   initialValues: Record<string, RosterEditValue>;
+  markedCount: number;
   lock: SessionLockInfo;
 }) {
   const router = useRouter();
@@ -104,6 +107,12 @@ export function AdminClassDrilldown({
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle>Class attendance</CardTitle>
         <div className="flex items-center gap-2">
+          <SendParentReportDialog
+            classId={classId}
+            sessionDate={sessionDate}
+            sessionType={sessionType}
+            markedCount={markedCount}
+          />
           <LockBadge isLocked={lock.isLocked} effectiveLockAt={lock.effectiveLockAt} />
           {lock.sessionId && (
             <>

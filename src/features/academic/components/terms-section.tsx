@@ -122,7 +122,9 @@ export function TermsSection({
                 render={({ field }) => (
                   <Select value={field.value} onValueChange={field.onChange}>
                     <SelectTrigger id="term-year">
-                      <SelectValue placeholder="Select year" />
+                      <SelectValue placeholder="Select year">
+                        {(value: string) => yearNameById.get(value) ?? value}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {academicYears.map((year) => (

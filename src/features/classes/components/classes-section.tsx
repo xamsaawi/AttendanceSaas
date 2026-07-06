@@ -224,7 +224,9 @@ function ClassFormDialog({
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="class-year" className="w-full">
-                    <SelectValue placeholder="Select year" />
+                    <SelectValue placeholder="Select year">
+                      {(value: string) => academicYears.find((y) => y.id === value)?.name ?? value}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {academicYears.map((year) => (
@@ -248,7 +250,9 @@ function ClassFormDialog({
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="class-grade" className="w-full">
-                    <SelectValue placeholder="Select grade" />
+                    <SelectValue placeholder="Select grade">
+                      {(value: string) => grades.find((g) => g.id === value)?.name ?? value}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {grades.map((grade) => (
@@ -270,7 +274,9 @@ function ClassFormDialog({
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="class-section" className="w-full">
-                    <SelectValue placeholder="Select section" />
+                    <SelectValue placeholder="Select section">
+                      {(value: string) => sections.find((s) => s.id === value)?.name ?? value}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {sections.map((section) => (
@@ -297,7 +303,11 @@ function ClassFormDialog({
                   onValueChange={(value) => field.onChange(value === NONE_VALUE ? undefined : value)}
                 >
                   <SelectTrigger id="class-teacher" className="w-full">
-                    <SelectValue placeholder="None" />
+                    <SelectValue placeholder="None">
+                      {(value: string) =>
+                        value === NONE_VALUE ? "None" : (teachers.find((t) => t.id === value)?.name ?? value)
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE_VALUE}>None</SelectItem>

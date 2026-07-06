@@ -128,7 +128,9 @@ export function HolidaysSection({
                   }
                 >
                   <SelectTrigger id="holiday-year">
-                    <SelectValue placeholder="None" />
+                    <SelectValue placeholder="None">
+                      {(value: string) => (value === NO_YEAR ? "None" : (yearNameById.get(value) ?? value))}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NO_YEAR}>None</SelectItem>

@@ -66,3 +66,45 @@ export async function listGuardians(
     links: linksByGuardianId.get(guardian.id) ?? [],
   }));
 }
+
+export type PrimaryGuardianContact = { name: string; phone: string | null };
+
+// Keyed by student_id so callers can look up "who do I message for this kid"
+// in O(1) — used by the parent attendance report send, one message per
+// student's primary guardian only (a student can have several guardians).
+export async function getPrimaryGuardiansForStudents(
+  organizationId: string,
+  studentIds: string[],
+): Promise<Map<string, PrimaryGuardianContact>> {
+  if (studentIds.length === 0) return new Map();
+
+  const supabase = await createClient();
+  const { data: links, error } = await supabase
+    .from("student_guardians")
+    .select("student_id, guardian_id")
+    .eq("organization_id", organizationId)
+    .eq("is_primary", true)
+    .in("student_id", studentIds);
+
+  if (error) throw error;
+  if (!links?.length) return new Map();
+
+  const guardianIds = Array.from(new Set(links.map((l) => l.guardian_id)));
+  const { data: guardians, error: guardiansError } = await supabase
+    .from("guardians")
+    .select("id, full_name, phone")
+    .eq("organization_id", organizationId)
+    .in("id", guardianIds);
+
+  if (guardiansError) throw guardiansError;
+
+  const guardianById = new Map((guardians ?? []).map((g) => [g.id, g]));
+
+  const result = new Map<string, PrimaryGuardianContact>();
+  for (const link of links) {
+    const guardian = guardianById.get(link.guardian_id);
+    if (!guardian) continue;
+    result.set(link.student_id, { name: guardian.full_name, phone: guardian.phone });
+  }
+  return result;
+}

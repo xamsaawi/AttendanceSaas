@@ -113,7 +113,9 @@ export function ManageStudentLinksDialog({
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="link-student" className="w-full">
-                    <SelectValue placeholder="Select student" />
+                    <SelectValue placeholder="Select student">
+                      {(value: string) => studentOptions.find((o) => o.id === value)?.label ?? value}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {studentOptions.map((option) => (

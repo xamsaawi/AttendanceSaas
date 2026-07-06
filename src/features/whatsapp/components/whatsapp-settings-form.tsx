@@ -22,6 +22,15 @@ import { sendTestWhatsappMessage, updateWhatsappSettings } from "@/features/what
 import type { listWhatsappMessages } from "@/features/whatsapp/queries";
 import { whatsappSettingsSchema, type WhatsappSettingsInput } from "@/lib/validations/whatsapp";
 
+// Select.Value only renders the raw stored value unless given a mapping
+// function (see src/components/ui/select.tsx) — this form's provider values
+// ("none"/"twilio"/"whatsapp_cloud_api") aren't human-readable on their own.
+const PROVIDER_LABELS: Record<string, string> = {
+  none: "None",
+  twilio: "Twilio",
+  whatsapp_cloud_api: "Meta WhatsApp Cloud API",
+};
+
 export function WhatsappSettingsForm({
   defaultValues,
   recentMessages,
@@ -48,6 +57,7 @@ export function WhatsappSettingsForm({
   // component (logged as a lint warning, not an error) — accepted since the
   // enabled/disabled badge genuinely needs to react live as the switch flips.
   const isEnabled = watch("isEnabled");
+  const provider = watch("provider");
 
   async function onSubmit(data: WhatsappSettingsInput) {
     setIsSubmitting(true);
@@ -95,11 +105,12 @@ export function WhatsappSettingsForm({
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="whatsapp-provider" className="w-full">
-                    <SelectValue placeholder="None" />
+                    <SelectValue placeholder="None">{(value: string) => PROVIDER_LABELS[value] ?? value}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
                     <SelectItem value="twilio">Twilio</SelectItem>
+                    <SelectItem value="whatsapp_cloud_api">Meta WhatsApp Cloud API</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -115,13 +126,21 @@ export function WhatsappSettingsForm({
             />
             <Label htmlFor="whatsapp-enabled">Enable sending</Label>
           </div>
+          {provider === "twilio" && (
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp-account-sid">Account SID</Label>
+              <Input id="whatsapp-account-sid" {...register("accountSid")} />
+            </div>
+          )}
           <div className="space-y-2">
-            <Label htmlFor="whatsapp-account-sid">Account SID</Label>
-            <Input id="whatsapp-account-sid" {...register("accountSid")} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp-phone">WhatsApp sender number</Label>
-            <Input id="whatsapp-phone" placeholder="+14155238886" {...register("phoneNumberId")} />
+            <Label htmlFor="whatsapp-phone">
+              {provider === "whatsapp_cloud_api" ? "Phone number ID" : "WhatsApp sender number"}
+            </Label>
+            <Input
+              id="whatsapp-phone"
+              placeholder={provider === "whatsapp_cloud_api" ? "123456789012345" : "+14155238886"}
+              {...register("phoneNumberId")}
+            />
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="whatsapp-token">Auth token</Label>

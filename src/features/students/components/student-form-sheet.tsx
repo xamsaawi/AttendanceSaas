@@ -30,6 +30,20 @@ import { studentSchema, type StudentInput } from "@/lib/validations/students";
 
 const NONE_VALUE = "__none__";
 
+const GENDER_LABELS: Record<string, string> = {
+  [NONE_VALUE]: "Unspecified",
+  male: "Male",
+  female: "Female",
+  other: "Other",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  graduated: "Graduated",
+  withdrawn: "Withdrawn",
+};
+
 export type StudentEditData = {
   id: string;
   admission_number: string;
@@ -174,7 +188,9 @@ export function StudentFormSheet({
                       }
                     >
                       <SelectTrigger id="student-gender" className="w-full">
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder="Select">
+                          {(value: string) => GENDER_LABELS[value] ?? value}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={NONE_VALUE}>Unspecified</SelectItem>
@@ -200,7 +216,13 @@ export function StudentFormSheet({
                     }
                   >
                     <SelectTrigger id="student-class" className="w-full">
-                      <SelectValue placeholder="Unassigned" />
+                      <SelectValue placeholder="Unassigned">
+                        {(value: string) =>
+                          value === NONE_VALUE
+                            ? "Unassigned"
+                            : (classOptions.find((o) => o.id === value)?.label ?? value)
+                        }
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NONE_VALUE}>Unassigned</SelectItem>
@@ -223,7 +245,7 @@ export function StudentFormSheet({
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger id="student-status" className="w-full">
-                        <SelectValue />
+                        <SelectValue>{(value: string) => STATUS_LABELS[value] ?? value}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Active</SelectItem>

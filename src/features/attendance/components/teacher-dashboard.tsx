@@ -51,7 +51,9 @@ export function TeacherDashboard({ homeroomClasses }: { homeroomClasses: Homeroo
           {homeroomClasses.length > 1 && (
             <Select value={classId} onValueChange={(value) => value && setClassId(value)}>
               <SelectTrigger size="sm">
-                <SelectValue />
+                <SelectValue>
+                  {(value: string) => homeroomClasses.find((c) => c.id === value)?.label ?? value}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {homeroomClasses.map((c) => (

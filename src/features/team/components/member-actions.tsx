@@ -61,7 +61,9 @@ export function MemberActions({ userId, role }: { userId: string; role: OrgRole 
     <div className="flex items-center justify-end gap-2">
       <Select value={currentRole} onValueChange={onRoleChange} disabled={isPending}>
         <SelectTrigger size="sm">
-          <SelectValue />
+          <SelectValue>
+            {(value: OrgRole) => ROLE_OPTIONS.find((option) => option.value === value)?.label ?? value}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {ROLE_OPTIONS.map((option) => (

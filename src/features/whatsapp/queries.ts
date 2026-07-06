@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 export type WhatsappSettings = {
-  provider: "twilio" | null;
+  provider: "twilio" | "whatsapp_cloud_api" | null;
   accountSid: string | null;
   phoneNumberId: string | null;
   accessToken: string | null;
@@ -18,8 +18,9 @@ export async function getWhatsappSettings(organizationId: string): Promise<Whats
 
   return {
     // The `provider` column is a plain text field with a check constraint
-    // (null or 'twilio'), so codegen can't narrow it to the literal type.
-    provider: (data?.provider as "twilio" | null) ?? null,
+    // (null, 'twilio', or 'whatsapp_cloud_api'), so codegen can't narrow it
+    // to the literal type.
+    provider: (data?.provider as "twilio" | "whatsapp_cloud_api" | null) ?? null,
     accountSid: data?.account_sid ?? null,
     phoneNumberId: data?.phone_number_id ?? null,
     accessToken: data?.access_token ?? null,

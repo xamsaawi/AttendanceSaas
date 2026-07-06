@@ -244,6 +244,7 @@ async function AdminTabContent({
         sessionType={sessionType}
         students={roster.students}
         initialValues={initialValues}
+        markedCount={roster.recordByStudentId.size}
         lock={roster.lock}
       />
     );

@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { attendanceStatusOptions } from "@/lib/attendance/status";
+import { attendanceStatusLabels, attendanceStatusOptions } from "@/lib/attendance/status";
 import type { AttendanceStatus } from "@/types/database";
 
 export type RosterEditValue = { status: AttendanceStatus; notes: string };
@@ -70,7 +70,9 @@ export function RosterTable({
                     disabled={disabled}
                   >
                     <SelectTrigger size="sm">
-                      <SelectValue />
+                      <SelectValue>
+                        {(status: AttendanceStatus) => attendanceStatusLabels[status]}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       {attendanceStatusOptions.map((option) => (

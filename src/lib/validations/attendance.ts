@@ -25,3 +25,12 @@ export const lockOverrideSchema = z.object({
 });
 
 export type LockOverrideInput = z.infer<typeof lockOverrideSchema>;
+
+export const sendParentReportSchema = z.object({
+  classId: z.string().uuid(),
+  sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  sessionType: sessionTypeSchema,
+  messageTemplate: z.string().trim().min(1, "Message is required").max(1000),
+});
+
+export type SendParentReportInput = z.infer<typeof sendParentReportSchema>;

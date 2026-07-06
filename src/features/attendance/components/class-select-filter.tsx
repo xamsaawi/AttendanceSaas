@@ -27,7 +27,7 @@ export function ClassSelectFilter({
       onValueChange={(value) => router.push(`/dashboard/attendance?tab=${tab}&classId=${value}`)}
     >
       <SelectTrigger size="sm" className="w-56">
-        <SelectValue />
+        <SelectValue>{(value: string) => classOptions.find((c) => c.id === value)?.label ?? value}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {classOptions.map((c) => (

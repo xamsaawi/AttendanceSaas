@@ -14,6 +14,14 @@ import {
 
 const ALL_VALUE = "__all__";
 
+const STATUS_LABELS: Record<string, string> = {
+  [ALL_VALUE]: "All statuses",
+  active: "Active",
+  inactive: "Inactive",
+  graduated: "Graduated",
+  withdrawn: "Withdrawn",
+};
+
 export function StudentsFilters({
   search,
   status,
@@ -50,7 +58,7 @@ export function StudentsFilters({
         onValueChange={(value) => pushParams({ status: !value || value === ALL_VALUE ? "" : value })}
       >
         <SelectTrigger className="w-40">
-          <SelectValue placeholder="All statuses" />
+          <SelectValue placeholder="All statuses">{(value: string) => STATUS_LABELS[value] ?? value}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={ALL_VALUE}>All statuses</SelectItem>

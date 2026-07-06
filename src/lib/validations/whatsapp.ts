@@ -3,7 +3,7 @@ import { z } from "zod";
 // "none" is a form-layer sentinel for "no provider selected yet" — the
 // server action maps it to a null `provider` column.
 export const whatsappSettingsSchema = z.object({
-  provider: z.enum(["twilio", "none"]),
+  provider: z.enum(["twilio", "whatsapp_cloud_api", "none"]),
   accountSid: z.string().trim().max(200).optional(),
   phoneNumberId: z.string().trim().max(200).optional(),
   accessToken: z.string().trim().max(500).optional(),
