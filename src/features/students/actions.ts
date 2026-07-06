@@ -6,6 +6,7 @@ import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { validateImageFile } from "@/lib/validations/image-upload";
 import { studentSchema, type StudentInput } from "@/lib/validations/students";
 import type { ActionResult } from "@/types/action-result";
 
@@ -148,6 +149,10 @@ export async function uploadStudentPhoto(formData: FormData): Promise<ActionResu
   const studentId = formData.get("studentId");
   if (!(file instanceof File) || file.size === 0) {
     return { success: false, error: "Please choose a file" };
+  }
+  const validationError = validateImageFile(file);
+  if (validationError) {
+    return { success: false, error: validationError };
   }
   if (typeof studentId !== "string" || !studentId) {
     return { success: false, error: "Missing student" };

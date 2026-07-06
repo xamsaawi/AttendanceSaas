@@ -64,23 +64,30 @@ export async function requireClassAttendanceAccess(classId: string): Promise<Cla
   if (!membership) return null;
 
   const isAdmin = membership.role === "owner" || membership.role === "admin";
-  if (isAdmin) return { membership, isAdmin, isTeacherOfClass: false };
 
   const supabase = await createClient();
+
+  // Scope every role to classes within the caller's own organization — without
+  // this check an admin/owner could pass another school's classId and pass
+  // the isAdmin branch unchecked (confirmed exploitable: forged cross-org
+  // attendance_sessions/records via markAttendanceCore).
+  const { data: cls } = await supabase
+    .from("classes")
+    .select("id, homeroom_teacher_id")
+    .eq("id", classId)
+    .eq("organization_id", membership.organizationId)
+    .maybeSingle();
+
+  if (!cls) return null;
+
+  if (isAdmin) return { membership, isAdmin, isTeacherOfClass: false };
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: cls } = await supabase
-    .from("classes")
-    .select("id")
-    .eq("id", classId)
-    .eq("organization_id", membership.organizationId)
-    .eq("homeroom_teacher_id", user.id)
-    .maybeSingle();
-
-  return { membership, isAdmin: false, isTeacherOfClass: Boolean(cls) };
+  return { membership, isAdmin: false, isTeacherOfClass: cls.homeroom_teacher_id === user.id };
 }
 
 export type RosterStudent = {

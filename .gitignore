@@ -58,3 +58,9 @@ public/swe-worker-*.js.map
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+e2e/.seed-output.json

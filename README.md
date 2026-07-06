@@ -63,6 +63,7 @@ supabase gen types typescript --project-id <your-project-ref> > src/types/databa
 | `pnpm format`           | Format the codebase with Prettier       |
 | `pnpm format:check`     | Check formatting without writing        |
 | `pnpm icons:generate`   | Regenerate placeholder PWA icons        |
+| `pnpm test:e2e`         | Run the Playwright smoke suite (see below) |
 
 ## Project structure
 
@@ -90,6 +91,17 @@ supabase/
   config.toml          Local Supabase CLI config
 ```
 
+## Testing
+
+`e2e/` has a Playwright smoke suite covering login, marking attendance, generating/exporting a report, and cross-org RLS isolation. It runs against a real dev server and a real (linked) Supabase project, so it needs seeded test data first:
+
+```bash
+node --env-file=.env.local scripts/seed-e2e.mjs
+pnpm test:e2e
+```
+
+This isn't wired into CI — CI has no live Supabase credentials or seed data, and setting that up safely is a separate infra task. Run it locally before a release.
+
 ## Deployment
 
-This project deploys to [Vercel](https://vercel.com). See [docs/deployment.md](docs/deployment.md) for step-by-step instructions and required environment variables.
+This project deploys to [Vercel](https://vercel.com). See [docs/deployment.md](docs/deployment.md) for step-by-step instructions, required environment variables, and the production checklist. See [docs/backup-recovery.md](docs/backup-recovery.md) for the backup/restore runbook.

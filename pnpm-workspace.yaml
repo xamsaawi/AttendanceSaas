@@ -4,3 +4,6 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+overrides:
+  postcss@<8.5.10: ">=8.5.10"
+  uuid@<11.1.1: ">=11.1.1"

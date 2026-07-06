@@ -9,6 +9,7 @@ import { logger } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
+import { validateImageFile } from "@/lib/validations/image-upload";
 import {
   teacherInviteSchema,
   teacherProfileSchema,
@@ -144,6 +145,10 @@ export async function uploadTeacherPhoto(formData: FormData): Promise<ActionResu
   const userId = formData.get("userId");
   if (!(file instanceof File) || file.size === 0) {
     return { success: false, error: "Please choose a file" };
+  }
+  const validationError = validateImageFile(file);
+  if (validationError) {
+    return { success: false, error: validationError };
   }
   if (typeof userId !== "string" || !userId) {
     return { success: false, error: "Missing teacher" };

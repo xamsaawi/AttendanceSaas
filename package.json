@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
-    "create-owner": "node --env-file=.env.local scripts/create-owner.mjs"
+    "create-owner": "node --env-file=.env.local scripts/create-owner.mjs",
+    "seed:e2e": "node --env-file=.env.local scripts/seed-e2e.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -42,6 +44,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query-devtools": "^5.101.2",
@@ -51,7 +54,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "playwright": "^1.61.1",
     "prettier": "^3.9.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "serwist": "^9.5.11",

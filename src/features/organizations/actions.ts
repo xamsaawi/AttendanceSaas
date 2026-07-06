@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { logAuditEvent } from "@/features/audit/log";
 import { logger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { validateImageFile } from "@/lib/validations/image-upload";
 import { schoolSettingsSchema, type SchoolSettingsInput } from "@/lib/validations/organization";
 import type { ActionResult } from "@/types/action-result";
 
@@ -67,6 +68,10 @@ export async function uploadSchoolLogo(formData: FormData): Promise<ActionResult
   const file = formData.get("logo");
   if (!(file instanceof File) || file.size === 0) {
     return { success: false, error: "Please choose a file" };
+  }
+  const validationError = validateImageFile(file);
+  if (validationError) {
+    return { success: false, error: validationError };
   }
 
   const membership = await requireAdminMembership();
