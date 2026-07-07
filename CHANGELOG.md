@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — Finalize
+
+- Replaced the leftover foundation-dashboard placeholder copy with a real overview: active students/teachers/classes counts, today's attendance rate, and quick links to every section.
+- Fixed `pnpm lint` failing whenever run after a local `pnpm build` — the generated `public/sw.js` service worker wasn't excluded from ESLint and its minified output tripped a real `no-this-alias` error (only "worked" in CI by accident of step order on a clean checkout).
+- `docs/deployment.md` production checklist now references the current newest migration (`20260706010000_whatsapp_cloud_api_provider.sql`).
+- Full QA pass: `typecheck`, `lint`, `build`, and the Playwright e2e suite (login, attendance marking, report export, cross-org RLS isolation) all green.
+
 ## v1.0.0 — Production readiness
 
 - Playwright E2E smoke suite covering login, attendance marking, report export, and cross-org RLS isolation.

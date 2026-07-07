@@ -24,7 +24,7 @@
 Run through this before/after cutting a release:
 
 - [ ] `pnpm build`, `pnpm typecheck`, `pnpm lint`, `pnpm audit --prod` all clean locally.
-- [ ] All files in `supabase/migrations/` are applied to the linked project — check via `pnpm dlx supabase migration list --linked` (needs `supabase login` once) or by diffing against Supabase Studio's migration history. As of this writing the newest is `20260705030000_storage_upload_limits.sql`.
+- [ ] All files in `supabase/migrations/` are applied to the linked project — check via `pnpm dlx supabase migration list --linked` (needs `supabase login` once) or by diffing against Supabase Studio's migration history. As of this writing the newest is `20260706010000_whatsapp_cloud_api_provider.sql`.
 - [ ] Vercel project env vars match `.env.example` exactly (including `CRON_SECRET`) across Production/Preview.
 - [ ] Supabase Auth redirect URLs include the current production Vercel URL.
 - [ ] `/api/health` returns 200 on the production deployment.

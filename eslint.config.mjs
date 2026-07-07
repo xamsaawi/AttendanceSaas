@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated service worker output (Serwist) — gitignored build artifacts,
+    // but present locally after `pnpm build` and not covered by the ignores above.
+    "public/sw.js",
+    "public/sw.js.map",
+    "public/swe-worker-*.js",
+    "public/swe-worker-*.js.map",
   ]),
 ]);
 
