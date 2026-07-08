@@ -71,7 +71,7 @@ export default async function AttendancePage({
   const teacherNameById = new Map(members.map((m) => [m.userId, m.fullName ?? m.email ?? "Unnamed"]));
   const classLabelById = new Map(classOptions.map((c) => [c.id, c.label]));
 
-  const defaultTab = isAdmin ? "admin" : homeroomClasses.length > 0 ? "mine" : "calendar";
+  const defaultTab = isAdmin ? "admin" : "mine";
   const activeTab = params.tab ?? defaultTab;
 
   const selectedClassId =
@@ -89,13 +89,13 @@ export default async function AttendancePage({
 
       <Tabs defaultValue={activeTab}>
         <TabsList>
-          {homeroomClasses.length > 0 && <TabsTrigger value="mine">Mark Attendance</TabsTrigger>}
+          {!isAdmin && <TabsTrigger value="mine">Mark Attendance</TabsTrigger>}
           <TabsTrigger value="calendar">Calendar</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           {isAdmin && <TabsTrigger value="admin">Admin Overview</TabsTrigger>}
         </TabsList>
 
-        {homeroomClasses.length > 0 && (
+        {!isAdmin && (
           <TabsContent value="mine" className="space-y-6 pt-4">
             <TeacherDashboard homeroomClasses={homeroomClasses} />
           </TabsContent>
