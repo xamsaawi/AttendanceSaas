@@ -15,15 +15,15 @@ import { DatePickerField } from "@/features/attendance/components/date-picker-fi
 import { RosterEditor } from "@/features/attendance/components/roster-editor";
 import { SessionTabs } from "@/features/attendance/components/session-tabs";
 import { fetchRosterWithOfflineFallback } from "@/features/attendance/offline/fetch-roster";
-import type { HomeroomClassOption } from "@/features/attendance/queries";
+import type { ClassOption } from "@/features/classes/queries";
 import type { AttendanceSessionType } from "@/types/database";
 
 function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function TeacherDashboard({ homeroomClasses }: { homeroomClasses: HomeroomClassOption[] }) {
-  const [classId, setClassId] = useState(homeroomClasses[0]?.id ?? "");
+export function TeacherDashboard({ classes }: { classes: ClassOption[] }) {
+  const [classId, setClassId] = useState(classes[0]?.id ?? "");
   const [sessionDate, setSessionDate] = useState(today());
   const [sessionType, setSessionType] = useState<AttendanceSessionType>("before_break");
 
@@ -33,11 +33,11 @@ export function TeacherDashboard({ homeroomClasses }: { homeroomClasses: Homeroo
     enabled: Boolean(classId),
   });
 
-  if (homeroomClasses.length === 0) {
+  if (classes.length === 0) {
     return (
       <Card>
         <CardContent className="text-muted-foreground p-6 text-sm">
-          You aren&apos;t assigned as a homeroom teacher for any class yet.
+          No classes found yet.
         </CardContent>
       </Card>
     );
@@ -48,15 +48,15 @@ export function TeacherDashboard({ homeroomClasses }: { homeroomClasses: Homeroo
       <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle>Mark attendance</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
-          {homeroomClasses.length > 1 && (
+          {classes.length > 1 && (
             <Select value={classId} onValueChange={(value) => value && setClassId(value)}>
               <SelectTrigger size="sm">
                 <SelectValue>
-                  {(value: string) => homeroomClasses.find((c) => c.id === value)?.label ?? value}
+                  {(value: string) => classes.find((c) => c.id === value)?.label ?? value}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {homeroomClasses.map((c) => (
+                {classes.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.label}
                   </SelectItem>

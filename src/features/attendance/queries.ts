@@ -23,42 +23,16 @@ export async function getSchoolCalendarConfig(organizationId: string): Promise<S
   };
 }
 
-export type HomeroomClassOption = { id: string; label: string };
-
-export async function getHomeroomClassesForUser(
-  organizationId: string,
-  userId: string,
-): Promise<HomeroomClassOption[]> {
-  const supabase = await createClient();
-  const { data: classes, error } = await supabase
-    .from("classes")
-    .select("id, grade_id, section_id")
-    .eq("organization_id", organizationId)
-    .eq("homeroom_teacher_id", userId);
-
-  if (error) throw error;
-  if (!classes.length) return [];
-
-  const [{ data: grades }, { data: sections }] = await Promise.all([
-    supabase.from("grades").select("id, name").eq("organization_id", organizationId),
-    supabase.from("sections").select("id, name").eq("organization_id", organizationId),
-  ]);
-
-  const gradeNameById = new Map((grades ?? []).map((g) => [g.id, g.name]));
-  const sectionNameById = new Map((sections ?? []).map((s) => [s.id, s.name]));
-
-  return classes.map((c) => ({
-    id: c.id,
-    label: `${gradeNameById.get(c.grade_id) ?? "?"} - ${sectionNameById.get(c.section_id) ?? "?"}`,
-  }));
-}
-
 export type ClassAttendanceAccess = {
   membership: CurrentMembership;
   isAdmin: boolean;
   isTeacherOfClass: boolean;
 } | null;
 
+// Any teacher can mark attendance for any class in their own school (not
+// just a class they're the homeroom teacher of) — see is_class_teacher() in
+// 20260709010000_teachers_mark_any_class.sql, which enforces the same rule
+// at the RLS layer.
 export async function requireClassAttendanceAccess(classId: string): Promise<ClassAttendanceAccess> {
   const membership = await getCurrentMembership();
   if (!membership) return null;
@@ -73,21 +47,14 @@ export async function requireClassAttendanceAccess(classId: string): Promise<Cla
   // attendance_sessions/records via markAttendanceCore).
   const { data: cls } = await supabase
     .from("classes")
-    .select("id, homeroom_teacher_id")
+    .select("id")
     .eq("id", classId)
     .eq("organization_id", membership.organizationId)
     .maybeSingle();
 
   if (!cls) return null;
 
-  if (isAdmin) return { membership, isAdmin, isTeacherOfClass: false };
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  return { membership, isAdmin: false, isTeacherOfClass: cls.homeroom_teacher_id === user.id };
+  return { membership, isAdmin, isTeacherOfClass: isAdmin || membership.role === "teacher" };
 }
 
 export type RosterStudent = {

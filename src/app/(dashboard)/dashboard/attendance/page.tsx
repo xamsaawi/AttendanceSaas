@@ -19,7 +19,6 @@ import {
   getClassAttendanceCalendarMarks,
   getClassAttendanceHistory,
   getClassRosterForSession,
-  getHomeroomClassesForUser,
   getSchoolCalendarConfig,
 } from "@/features/attendance/queries";
 import { listClassOptions } from "@/features/classes/queries";
@@ -62,8 +61,7 @@ export default async function AttendancePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [homeroomClasses, classOptions, members] = await Promise.all([
-    user ? getHomeroomClassesForUser(organizationId, user.id) : Promise.resolve([]),
+  const [classOptions, members] = await Promise.all([
     listClassOptions(organizationId),
     isAdmin ? listMembers(organizationId) : Promise.resolve([]),
   ]);
@@ -74,8 +72,7 @@ export default async function AttendancePage({
   const defaultTab = isAdmin ? "admin" : "mine";
   const activeTab = params.tab ?? defaultTab;
 
-  const selectedClassId =
-    params.classId ?? homeroomClasses[0]?.id ?? classOptions[0]?.id ?? "";
+  const selectedClassId = params.classId ?? classOptions[0]?.id ?? "";
 
   return (
     <div className="space-y-6">
@@ -97,7 +94,7 @@ export default async function AttendancePage({
 
         {!isAdmin && (
           <TabsContent value="mine" className="space-y-6 pt-4">
-            <TeacherDashboard homeroomClasses={homeroomClasses} />
+            <TeacherDashboard classes={classOptions} />
           </TabsContent>
         )}
 
