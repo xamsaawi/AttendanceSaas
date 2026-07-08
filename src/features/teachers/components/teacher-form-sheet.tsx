@@ -64,7 +64,6 @@ export function TeacherFormSheet({ teacher }: { teacher?: TeacherRow }) {
 
 function InviteTeacherForm({ onDone }: { onDone: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
@@ -81,40 +80,9 @@ function InviteTeacherForm({ onDone }: { onDone: () => void }) {
       toast.error(result.error);
       return;
     }
+    toast.success(`Invited — they can sign in with Google using ${data.email}`);
     reset();
-    setTempPassword(result.tempPassword);
-  }
-
-  if (tempPassword) {
-    return (
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <p className="font-medium">Teacher account created</p>
-          <p className="text-muted-foreground text-sm">
-            Share this temporary password with them so they can sign in. It won&apos;t be shown
-            again.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input readOnly value={tempPassword} className="font-mono" />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              navigator.clipboard.writeText(tempPassword);
-              toast.success("Copied to clipboard");
-            }}
-          >
-            Copy
-          </Button>
-        </div>
-        <SheetFooter className="px-0">
-          <Button type="button" onClick={onDone}>
-            Done
-          </Button>
-        </SheetFooter>
-      </div>
-    );
+    onDone();
   }
 
   return (
@@ -125,9 +93,12 @@ function InviteTeacherForm({ onDone }: { onDone: () => void }) {
         {errors.fullName && <p className="text-destructive text-sm">{errors.fullName.message}</p>}
       </div>
       <div className="space-y-2">
-        <Label htmlFor="teacher-email">Email</Label>
+        <Label htmlFor="teacher-email">Gmail address</Label>
         <Input id="teacher-email" type="email" autoComplete="email" {...register("email")} />
         {errors.email && <p className="text-destructive text-sm">{errors.email.message}</p>}
+        <p className="text-muted-foreground text-xs">
+          They&apos;ll sign in with this Google account — no password to set or share.
+        </p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="teacher-staff-id">Staff ID</Label>
@@ -151,7 +122,7 @@ function InviteTeacherForm({ onDone }: { onDone: () => void }) {
       </div>
       <SheetFooter className="px-0">
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Creating account..." : "Create account"}
+          {isSubmitting ? "Adding teacher..." : "Add teacher"}
         </Button>
       </SheetFooter>
     </form>

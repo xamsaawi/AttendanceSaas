@@ -9,6 +9,7 @@ import {
   studentImportRowSchema,
   studentImportColumns,
 } from "@/features/students/import";
+import { inviteTeacherToOrganization } from "@/features/teachers/invite";
 import {
   TEACHER_IMPORT_BATCH_LIMIT,
   teacherImportRowSchema,
@@ -17,9 +18,7 @@ import {
 import { logger } from "@/lib/logger";
 import { parseWorkbook } from "@/lib/import-export/parse";
 import { validateRows } from "@/lib/import-export/validate";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
 
 const ENTITIES = ["students", "teachers", "guardians"] as const;
 type Entity = (typeof ENTITIES)[number];
@@ -27,13 +26,12 @@ type Entity = (typeof ENTITIES)[number];
 const UNIQUE_VIOLATION = "23505";
 
 type ImportError = { row: number; message: string };
-type CreatedAccount = { email: string; tempPassword: string };
 type ImportSummary = {
   total: number;
   succeeded: number;
   failed: number;
   errors: ImportError[];
-  accounts?: CreatedAccount[];
+  invitedEmails?: string[];
 };
 
 export async function POST(req: Request, { params }: { params: Promise<{ entity: string }> }) {
@@ -155,9 +153,8 @@ async function importTeachers(buffer: ArrayBuffer, organizationId: string): Prom
   const rawRows = await parseWorkbook(buffer, teacherImportColumns);
   const results = validateRows(rawRows, teacherImportRowSchema).slice(0, TEACHER_IMPORT_BATCH_LIMIT);
 
-  const admin = createAdminClient();
   const errors: ImportError[] = [];
-  const accounts: CreatedAccount[] = [];
+  const invitedEmails: string[] = [];
   let succeeded = 0;
 
   for (const result of results) {
@@ -166,52 +163,34 @@ async function importTeachers(buffer: ArrayBuffer, organizationId: string): Prom
       continue;
     }
 
-    const tempPassword = generateTempPassword();
-    const { data, error } = await createConfirmedUser(admin, {
-      email: result.data.email,
-      fullName: result.data.fullName,
-      password: tempPassword,
-    });
-
-    if (error || !data.user) {
-      errors.push({ row: result.row, message: error?.message ?? "Failed to create account" });
-      continue;
-    }
-
-    const { error: memberError } = await admin.from("organization_members").insert({
-      organization_id: organizationId,
-      user_id: data.user.id,
-      role: "teacher",
-    });
-    if (memberError) {
-      errors.push({ row: result.row, message: "Account created, but adding to school failed" });
-      continue;
-    }
-
     const subjects = (result.data.subjects ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const { error: profileError } = await admin.from("teacher_profiles").insert({
-      organization_id: organizationId,
-      user_id: data.user.id,
-      staff_id: result.data.staffId || null,
-      phone: result.data.phone || null,
-      subjects,
-      qualification: result.data.qualification || null,
-      hire_date: result.data.hireDate || null,
-    });
-    if (profileError) {
-      errors.push({ row: result.row, message: "Account created, but saving details failed" });
+    const invite = await inviteTeacherToOrganization(
+      organizationId,
+      result.data.email,
+      result.data.fullName,
+      {
+        staffId: result.data.staffId,
+        phone: result.data.phone,
+        subjects,
+        qualification: result.data.qualification,
+        hireDate: result.data.hireDate,
+      },
+    );
+
+    if (!invite.success) {
+      errors.push({ row: result.row, message: invite.error });
       continue;
     }
 
-    accounts.push({ email: result.data.email, tempPassword });
+    invitedEmails.push(result.data.email);
     succeeded++;
   }
 
-  return { total: results.length, succeeded, failed: errors.length, errors, accounts };
+  return { total: results.length, succeeded, failed: errors.length, errors, invitedEmails };
 }
 
 async function importGuardians(buffer: ArrayBuffer, organizationId: string): Promise<ImportSummary> {

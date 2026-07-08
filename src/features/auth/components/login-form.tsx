@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { login } from "@/features/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 
 const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
@@ -26,6 +27,7 @@ const CALLBACK_ERROR_MESSAGES: Record<string, string> = {
 
 export function LoginForm({ error }: { error?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const {
     register,
     handleSubmit,
@@ -46,13 +48,40 @@ export function LoginForm({ error }: { error?: string }) {
     }
   }
 
+  async function onGoogleSignIn() {
+    setIsGoogleSubmitting(true);
+    const supabase = createClient();
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
+    if (oauthError) {
+      toast.error(oauthError.message);
+      setIsGoogleSubmitting(false);
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>Enter your credentials to access your account.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          disabled={isGoogleSubmitting}
+          onClick={onGoogleSignIn}
+        >
+          {isGoogleSubmitting ? "Redirecting..." : "Continue with Google"}
+        </Button>
+        <div className="flex items-center gap-2">
+          <div className="bg-border h-px flex-1" />
+          <span className="text-muted-foreground text-xs">OR</span>
+          <div className="bg-border h-px flex-1" />
+        </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>

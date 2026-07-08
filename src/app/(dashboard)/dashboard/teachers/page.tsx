@@ -3,9 +3,10 @@ import type { Metadata } from "next";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCurrentMembership } from "@/features/organizations/queries";
 import { ImportExportBar } from "@/features/import-export/components/import-export-bar";
+import { PendingInvitesList } from "@/features/teachers/components/pending-invites-list";
 import { TeacherFormSheet } from "@/features/teachers/components/teacher-form-sheet";
 import { TeachersTable } from "@/features/teachers/components/teachers-table";
-import { listTeachers } from "@/features/teachers/queries";
+import { listPendingTeacherInvites, listTeachers } from "@/features/teachers/queries";
 
 export const metadata: Metadata = { title: "Teachers" };
 
@@ -23,7 +24,10 @@ export default async function TeachersPage() {
   }
 
   const isAdmin = membership.role === "owner" || membership.role === "admin";
-  const teachers = await listTeachers(membership.organizationId);
+  const [teachers, pendingInvites] = await Promise.all([
+    listTeachers(membership.organizationId),
+    isAdmin ? listPendingTeacherInvites(membership.organizationId) : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -36,6 +40,7 @@ export default async function TeachersPage() {
           </div>
         )}
       </div>
+      {isAdmin && <PendingInvitesList invites={pendingInvites} />}
       <Card>
         <CardContent className="p-0">
           <TeachersTable teachers={teachers} isAdmin={isAdmin} />

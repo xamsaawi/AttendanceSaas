@@ -1,6 +1,34 @@
 import { signPhotoUrls } from "@/features/students/queries";
 import { createClient } from "@/lib/supabase/server";
 
+export type PendingTeacherInvite = {
+  id: string;
+  email: string;
+  fullName: string;
+  createdAt: string;
+};
+
+export async function listPendingTeacherInvites(
+  organizationId: string,
+): Promise<PendingTeacherInvite[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("teacher_invites")
+    .select("id, email, full_name, created_at")
+    .eq("organization_id", organizationId)
+    .is("accepted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((invite) => ({
+    id: invite.id,
+    email: invite.email,
+    fullName: invite.full_name,
+    createdAt: invite.created_at,
+  }));
+}
+
 export type TeacherRow = {
   userId: string;
   fullName: string | null;

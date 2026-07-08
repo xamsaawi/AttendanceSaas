@@ -4,19 +4,18 @@ import { revalidatePath } from "next/cache";
 
 import { logAuditEvent } from "@/features/audit/log";
 import { requireAdminMembership } from "@/features/organizations/queries";
+import { inviteTeacherToOrganization } from "@/features/teachers/invite";
 import { logger } from "@/lib/logger";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
 import {
   inviteTeacherSchema,
   updateMemberRoleSchema,
   type InviteTeacherInput,
   type UpdateMemberRoleInput,
 } from "@/lib/validations/team";
-import type { ActionResult, PasswordActionResult } from "@/types/action-result";
+import type { ActionResult } from "@/types/action-result";
 
-export async function inviteTeacher(input: InviteTeacherInput): Promise<PasswordActionResult> {
+export async function inviteTeacher(input: InviteTeacherInput): Promise<ActionResult> {
   const parsed = inviteTeacherSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -27,46 +26,14 @@ export async function inviteTeacher(input: InviteTeacherInput): Promise<Password
     return { success: false, error: "You don't have permission to add teachers" };
   }
 
-  const admin = createAdminClient();
-  const tempPassword = generateTempPassword();
+  const result = await inviteTeacherToOrganization(
+    membership.organizationId,
+    parsed.data.email,
+    parsed.data.fullName,
+  );
 
-  const { data, error } = await createConfirmedUser(admin, {
-    email: parsed.data.email,
-    fullName: parsed.data.fullName,
-    password: tempPassword,
-  });
-
-  if (error || !data.user) {
-    logger.warn("Failed to create teacher account", {
-      email: parsed.data.email,
-      message: error?.message,
-    });
-    return { success: false, error: error?.message ?? "Failed to create account" };
-  }
-
-  const { error: memberError } = await admin.from("organization_members").insert({
-    organization_id: membership.organizationId,
-    user_id: data.user.id,
-    role: "teacher",
-  });
-
-  if (memberError) {
-    logger.warn("Failed to add teacher to organization", {
-      message: memberError.message,
-    });
-    return { success: false, error: "Account created, but adding them to your school failed" };
-  }
-
-  await logAuditEvent({
-    organizationId: membership.organizationId,
-    action: "member.invited",
-    entityType: "organization_member",
-    entityId: data.user.id,
-    metadata: { email: parsed.data.email, name: parsed.data.fullName, role: "teacher" },
-  });
-
-  revalidatePath("/dashboard/team");
-  return { success: true, tempPassword };
+  if (result.success) revalidatePath("/dashboard/team");
+  return result;
 }
 
 export async function updateMemberRole(input: UpdateMemberRoleInput): Promise<ActionResult> {

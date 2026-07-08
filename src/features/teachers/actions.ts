@@ -5,10 +5,10 @@ import { revalidatePath } from "next/cache";
 import { logAuditEvent } from "@/features/audit/log";
 import { removeMember } from "@/features/team/actions";
 import { requireAdminMembership } from "@/features/organizations/queries";
+import { cancelTeacherInvite, inviteTeacherToOrganization } from "@/features/teachers/invite";
 import { logger } from "@/lib/logger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { createConfirmedUser, generateTempPassword } from "@/lib/supabase/create-user";
 import { validateImageFile } from "@/lib/validations/image-upload";
 import {
   teacherInviteSchema,
@@ -16,7 +16,7 @@ import {
   type TeacherInviteInput,
   type TeacherProfileInput,
 } from "@/lib/validations/teachers";
-import type { ActionResult, PasswordActionResult } from "@/types/action-result";
+import type { ActionResult } from "@/types/action-result";
 
 const TEACHERS_PATH = "/dashboard/teachers";
 
@@ -28,9 +28,7 @@ function splitSubjects(subjects: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export async function inviteTeacherWithProfile(
-  input: TeacherInviteInput,
-): Promise<PasswordActionResult> {
+export async function inviteTeacherWithProfile(input: TeacherInviteInput): Promise<ActionResult> {
   const parsed = teacherInviteSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
@@ -41,59 +39,32 @@ export async function inviteTeacherWithProfile(
     return { success: false, error: "You don't have permission to add teachers" };
   }
 
-  const admin = createAdminClient();
-  const tempPassword = generateTempPassword();
+  const result = await inviteTeacherToOrganization(
+    membership.organizationId,
+    parsed.data.email,
+    parsed.data.fullName,
+    {
+      staffId: parsed.data.staffId,
+      phone: parsed.data.phone,
+      subjects: splitSubjects(parsed.data.subjects),
+      qualification: parsed.data.qualification,
+      hireDate: parsed.data.hireDate,
+    },
+  );
 
-  const { data, error } = await createConfirmedUser(admin, {
-    email: parsed.data.email,
-    fullName: parsed.data.fullName,
-    password: tempPassword,
-  });
+  if (result.success) revalidatePath(TEACHERS_PATH);
+  return result;
+}
 
-  if (error || !data.user) {
-    logger.warn("Failed to create teacher account", {
-      email: parsed.data.email,
-      message: error?.message,
-    });
-    return { success: false, error: error?.message ?? "Failed to create account" };
+export async function removeTeacherInvite(inviteId: string): Promise<ActionResult> {
+  const membership = await requireAdminMembership();
+  if (!membership) {
+    return { success: false, error: "You don't have permission to cancel invites" };
   }
 
-  const { error: memberError } = await admin.from("organization_members").insert({
-    organization_id: membership.organizationId,
-    user_id: data.user.id,
-    role: "teacher",
-  });
-
-  if (memberError) {
-    logger.warn("Failed to add teacher to organization", { message: memberError.message });
-    return { success: false, error: "Account created, but adding them to your school failed" };
-  }
-
-  const { error: profileError } = await admin.from("teacher_profiles").insert({
-    organization_id: membership.organizationId,
-    user_id: data.user.id,
-    staff_id: parsed.data.staffId || null,
-    phone: parsed.data.phone || null,
-    subjects: splitSubjects(parsed.data.subjects),
-    qualification: parsed.data.qualification || null,
-    hire_date: parsed.data.hireDate || null,
-  });
-
-  if (profileError) {
-    logger.warn("Failed to create teacher profile", { message: profileError.message });
-    return { success: false, error: "Account created, but saving teacher details failed" };
-  }
-
-  await logAuditEvent({
-    organizationId: membership.organizationId,
-    action: "teacher.invited",
-    entityType: "teacher",
-    entityId: data.user.id,
-    metadata: { email: parsed.data.email, name: parsed.data.fullName },
-  });
-
-  revalidatePath(TEACHERS_PATH);
-  return { success: true, tempPassword };
+  const result = await cancelTeacherInvite(membership.organizationId, inviteId);
+  if (result.success) revalidatePath(TEACHERS_PATH);
+  return result;
 }
 
 export async function updateTeacherProfile(

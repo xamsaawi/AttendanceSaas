@@ -889,6 +889,66 @@ export type Database = {
           },
         ]
       }
+      teacher_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_user_id: string | null
+          created_at: string
+          email: string
+          full_name: string
+          hire_date: string | null
+          id: string
+          organization_id: string
+          phone: string | null
+          qualification: string | null
+          staff_id: string | null
+          subjects: string[]
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          hire_date?: string | null
+          id?: string
+          organization_id: string
+          phone?: string | null
+          qualification?: string | null
+          staff_id?: string | null
+          subjects?: string[]
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          hire_date?: string | null
+          id?: string
+          organization_id?: string
+          phone?: string | null
+          qualification?: string | null
+          staff_id?: string | null
+          subjects?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_invites_accepted_user_id_fkey"
+            columns: ["accepted_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_profiles: {
         Row: {
           created_at: string
